@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwiftHaul — Shipping Rates & Payment</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="swifthaul_config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="swifthaul_guard.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --black:#0a0a0a;--white:#f5f4f0;--yellow:#f5c518;
+  --gray:#1a1a1a;--card:#111;--border:#2a2a2a;--muted:#888;
+  --red:#e24b4a;--green:#4caf50;
+  --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;
+  --px:clamp(1.25rem,5vw,4rem);
+}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.1rem var(--px);background:rgba(10,10,10,0.95);backdrop-filter:blur(12px);border-bottom:0.5px solid var(--border)}
+.logo{font-family:var(--font-head);font-weight:800;font-size:1.25rem;letter-spacing:-0.02em;text-decoration:none;color:var(--white)}
+.logo span{color:var(--yellow)}
+.nav-links{display:flex;gap:1.75rem;list-style:none;align-items:center}
+.nav-links a{text-decoration:none;color:var(--muted);font-size:0.8rem;letter-spacing:0.06em;text-transform:uppercase;transition:color 0.2s}
+.nav-links a:hover,.nav-links a.active{color:var(--white)}
+.nav-links a.active{color:var(--yellow)}
+.btn-nav{background:transparent;border:0.5px solid var(--border);color:var(--muted);padding:0.45rem 1rem;font-family:var(--font-body);font-size:0.78rem;cursor:pointer;border-radius:2px;transition:all 0.2s}
+.btn-nav:hover{border-color:#555;color:var(--white)}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;background:none;border:none}
+.hamburger span{display:block;width:22px;height:1.5px;background:var(--white);transition:all 0.3s}
+.hamburger.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+.mobile-menu{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99;background:rgba(10,10,10,0.98);flex-direction:column;align-items:center;justify-content:center;gap:2rem}
+.mobile-menu.open{display:flex}
+.mobile-menu a{text-decoration:none;color:var(--white);font-family:var(--font-head);font-size:2rem;font-weight:800;transition:color 0.2s}
+.mobile-menu a:hover{color:var(--yellow)}
+
+/* HERO */
+.hero{padding:4rem var(--px) 3rem;border-bottom:0.5px solid var(--border);position:relative;overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:0.2}
+.hero-tag{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--yellow);margin-bottom:1rem;position:relative;z-index:1}
+.hero-tag::before{content:'';width:22px;height:1px;background:var(--yellow)}
+.hero h1{font-family:var(--font-head);font-size:clamp(2rem,5vw,3.5rem);font-weight:800;letter-spacing:-0.03em;line-height:1;margin-bottom:0.75rem;position:relative;z-index:1}
+.hero h1 em{color:var(--yellow);font-style:normal}
+.hero p{color:var(--muted);font-size:0.92rem;line-height:1.7;max-width:500px;font-weight:300;position:relative;z-index:1}
+
+/* STEPS INDICATOR */
+.steps-bar{display:flex;align-items:center;gap:0;padding:1.25rem var(--px);border-bottom:0.5px solid var(--border);background:#0d0d0d}
+.step-item{display:flex;align-items:center;gap:0.5rem;font-size:0.78rem;color:#444;flex-shrink:0}
+.step-item.active{color:var(--white)}
+.step-item.done{color:var(--green)}
+.step-num{width:22px;height:22px;border-radius:50%;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:500;flex-shrink:0}
+.step-item.active .step-num{border-color:var(--yellow);color:var(--yellow)}
+.step-item.done .step-num{border-color:var(--green);color:var(--green);background:#0a1a0a}
+.step-sep{flex:1;height:0.5px;background:#1a1a1a;margin:0 0.75rem;min-width:20px}
+
+/* MAIN CONTENT AREA */
+.content{padding:2.5rem var(--px);flex:1;max-width:1100px}
+
+/* PRICING CARDS */
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:1px;background:var(--border);margin-bottom:2.5rem;border:0.5px solid var(--border)}
+.pricing-card{background:var(--card);padding:2rem 1.75rem;transition:background 0.3s;cursor:pointer;position:relative}
+.pricing-card:hover,.pricing-card.selected{background:#161616}
+.pricing-card.selected{outline:1px solid var(--yellow)}
+.pc-badge{position:absolute;top:1rem;right:1rem;background:var(--yellow);color:var(--black);font-size:0.62rem;font-weight:700;padding:0.18rem 0.5rem;border-radius:1px;letter-spacing:0.06em;text-transform:uppercase}
+.pc-icon{font-size:1.5rem;margin-bottom:1rem}
+.pc-name{font-family:var(--font-head);font-size:1.05rem;font-weight:700;margin-bottom:0.3rem}
+.pc-transit{font-size:0.78rem;color:var(--yellow);margin-bottom:0.75rem;letter-spacing:0.04em}
+.pc-price{font-family:var(--font-head);font-size:1.8rem;font-weight:800;line-height:1;margin-bottom:0.25rem}
+.pc-price span{font-size:0.78rem;font-weight:400;color:var(--muted)}
+.pc-base{font-size:0.75rem;color:var(--muted);margin-bottom:1rem}
+.pc-features{list-style:none;display:flex;flex-direction:column;gap:0.4rem}
+.pc-features li{font-size:0.8rem;color:var(--muted);display:flex;align-items:center;gap:0.4rem}
+.pc-features li::before{content:'✦';color:var(--yellow);font-size:0.6rem;flex-shrink:0}
+
+/* CALCULATOR */
+.calc-section{background:var(--card);border:0.5px solid var(--border);border-radius:2px;padding:2rem;margin-bottom:2rem}
+.calc-title{font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:1.5rem}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.form-group{display:flex;flex-direction:column;gap:0.4rem}
+.form-group.full{grid-column:1/-1}
+.field-label{font-size:0.67rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)}
+.field-input,.field-select{background:#1a1a1a;border:0.5px solid var(--border);color:var(--white);padding:0.75rem 1rem;font-family:var(--font-body);font-size:0.9rem;outline:none;border-radius:2px;transition:border-color 0.2s;width:100%}
+.field-input:focus,.field-select:focus{border-color:#555}
+.field-select{cursor:pointer}
+.price-display{background:#0d0d0d;border:0.5px solid var(--border);border-radius:2px;padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-top:1rem}
+.pd-label{font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em}
+.pd-amount{font-family:var(--font-head);font-size:2rem;font-weight:800;color:var(--yellow)}
+.pd-breakdown{font-size:0.75rem;color:var(--muted);margin-top:0.2rem}
+.btn-proceed{background:var(--yellow);color:var(--black);border:none;padding:0.85rem 2.2rem;font-family:var(--font-body);font-weight:500;font-size:0.95rem;cursor:pointer;border-radius:2px;transition:opacity 0.2s;white-space:nowrap}
+.btn-proceed:hover{opacity:0.88}
+.btn-proceed:disabled{opacity:0.4;cursor:not-allowed}
+
+/* CHECKOUT FORM */
+.checkout-section{display:none}
+.checkout-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:2.5rem;align-items:start}
+.order-summary{background:var(--card);border:0.5px solid var(--border);border-radius:2px;padding:1.5rem;position:sticky;top:88px}
+.os-title{font-family:var(--font-head);font-size:0.95rem;font-weight:700;margin-bottom:1.25rem}
+.os-row{display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0;border-bottom:0.5px solid var(--border);font-size:0.85rem}
+.os-row:last-child{border-bottom:none}
+.os-label{color:var(--muted)}
+.os-val{font-weight:500;text-align:right;max-width:55%}
+.os-total{display:flex;justify-content:space-between;align-items:center;padding:1rem 0 0;margin-top:0.5rem;border-top:0.5px solid var(--border)}
+.os-total-label{font-family:var(--font-head);font-weight:700;font-size:0.95rem}
+.os-total-amount{font-family:var(--font-head);font-weight:800;font-size:1.5rem;color:var(--yellow)}
+.payment-form{background:var(--card);border:0.5px solid var(--border);border-radius:2px;padding:1.5rem}
+.pf-title{font-family:var(--font-head);font-size:0.95rem;font-weight:700;margin-bottom:1.25rem}
+.pf-section-label{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--yellow);margin:1.25rem 0 0.75rem}
+.pf-section-label:first-of-type{margin-top:0}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem}
+.payment-methods{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem}
+.pm-option{background:#1a1a1a;border:0.5px solid var(--border);color:var(--muted);padding:0.5rem 1rem;font-size:0.82rem;border-radius:2px;cursor:pointer;transition:all 0.2s;font-family:var(--font-body)}
+.pm-option.selected{border-color:var(--yellow);color:var(--yellow)}
+.card-fields{display:none}
+.card-fields.show{display:block}
+.btn-pay{width:100%;background:var(--yellow);color:var(--black);border:none;padding:0.9rem;font-family:var(--font-body);font-weight:500;font-size:0.95rem;cursor:pointer;border-radius:2px;margin-top:1.25rem;transition:opacity 0.2s}
+.btn-pay:hover{opacity:0.88}
+.btn-pay:disabled{opacity:0.5;cursor:not-allowed}
+.pay-note{font-size:0.75rem;color:#444;text-align:center;margin-top:0.75rem;line-height:1.5}
+.field-err{font-size:0.78rem;color:var(--red);margin-top:0.4rem;display:none}
+.btn-back{background:transparent;border:0.5px solid var(--border);color:var(--muted);padding:0.65rem 1.4rem;font-family:var(--font-body);font-size:0.85rem;cursor:pointer;border-radius:2px;transition:all 0.2s;margin-bottom:1.5rem}
+.btn-back:hover{border-color:#555;color:var(--white)}
+
+/* RECEIPT — shown after payment and for print */
+.receipt-section{display:none}
+.receipt-wrap{max-width:680px;margin:0 auto}
+.receipt-success{text-align:center;padding:2rem 0 2.5rem}
+.receipt-check{width:56px;height:56px;border-radius:50%;background:#0a1a0a;border:1.5px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.4rem}
+.receipt-success h2{font-family:var(--font-head);font-size:1.5rem;font-weight:800;margin-bottom:0.4rem}
+.receipt-success p{color:var(--muted);font-size:0.88rem;line-height:1.6}
+.receipt-tracking{font-family:var(--font-head);font-size:1.3rem;font-weight:800;color:var(--yellow);margin-top:0.5rem}
+.receipt-card{background:var(--card);border:0.5px solid var(--border);border-radius:2px;overflow:hidden;margin-bottom:1.25rem}
+.receipt-header{background:#111;padding:1.25rem 1.5rem;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem}
+.rh-left{font-family:var(--font-head);font-weight:800;font-size:1rem}
+.rh-left span{color:var(--yellow)}
+.rh-right{text-align:right;font-size:0.75rem;color:var(--muted)}
+.receipt-body{padding:1.5rem}
+.receipt-row{display:flex;justify-content:space-between;align-items:flex-start;padding:0.65rem 0;border-bottom:0.5px solid #1a1a1a;gap:1rem}
+.receipt-row:last-child{border-bottom:none}
+.rr-label{font-size:0.75rem;color:var(--muted);flex-shrink:0}
+.rr-val{font-size:0.88rem;font-weight:500;text-align:right}
+.receipt-total{background:#0d0d0d;padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;border-top:0.5px solid var(--border)}
+.rt-label{font-family:var(--font-head);font-weight:700;font-size:0.95rem}
+.rt-amount{font-family:var(--font-head);font-weight:800;font-size:1.5rem;color:var(--yellow)}
+.receipt-actions{display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1.5rem}
+.btn-print{background:var(--yellow);color:var(--black);border:none;padding:0.78rem 1.8rem;font-family:var(--font-body);font-weight:500;font-size:0.9rem;cursor:pointer;border-radius:2px;transition:opacity 0.2s}
+.btn-print:hover{opacity:0.88}
+.btn-track{background:transparent;border:0.5px solid var(--border);color:var(--white);padding:0.78rem 1.8rem;font-family:var(--font-body);font-size:0.9rem;cursor:pointer;border-radius:2px;text-decoration:none;transition:border-color 0.2s;display:inline-block}
+.btn-track:hover{border-color:#555}
+
+/* PRINT STYLES */
+@media print{
+  nav,.steps-bar,.hero,.receipt-success,.receipt-actions,.pricing-section,.calc-section,.checkout-section,footer{display:none!important}
+  .receipt-section{display:block!important}
+  .receipt-card{border:1px solid #ccc;border-radius:0}
+  body{background:#fff;color:#000;font-family:Arial,sans-serif}
+  .receipt-header{background:#f5f5f5}
+  .rh-left,.rh-left span,.rt-amount,.receipt-tracking,.rr-val,.receipt-success h2{color:#000!important}
+  .rr-label,.rh-right,.pd-breakdown{color:#666!important}
+  .receipt-total{background:#f5f5f5}
+}
+
+footer{border-top:0.5px solid var(--border);padding:1.5rem var(--px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;background:var(--gray);margin-top:auto}
+.foot-logo{font-family:var(--font-head);font-weight:800;font-size:1rem;text-decoration:none;color:var(--white)}
+.foot-logo span{color:var(--yellow)}
+.foot-copy{font-size:0.73rem;color:#555}
+.foot-links{display:flex;gap:1.25rem;flex-wrap:wrap}
+.foot-links a{font-size:0.73rem;color:#555;text-decoration:none;transition:color 0.2s}
+.foot-links a:hover{color:var(--white)}
+
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;background:#1a1a1a;border:0.5px solid #2a5a2a;color:#4caf50;padding:0.75rem 1.25rem;border-radius:2px;font-size:0.85rem;transform:translateY(60px);opacity:0;transition:all 0.3s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.err{border-color:#5a2a2a;color:var(--red)}
+
+@media(max-width:900px){.checkout-grid{grid-template-columns:1fr}.order-summary{position:static}}
+@media(max-width:768px){.nav-links{display:none}.hamburger{display:flex}.calc-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}}
+@media(max-width:480px){footer{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="swifthaul_logistics_site.html">Swift<span>Haul</span></a>
+  <ul class="nav-links">
+    <li><a href="swifthaul_logistics_site.html">Home</a></li>
+    <li><a href="swifthaul_tracker.html">Track</a></li>
+    <li><a href="swifthaul_shipping.html" class="active">Ship Now</a></li>
+    <li><a href="swifthaul_account.html">My Account</a></li>
+  </ul>
+  <div style="display:flex;align-items:center;gap:0.75rem">
+    <button class="btn-nav" onclick="signOut()">Sign Out</button>
+    <button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="swifthaul_logistics_site.html" onclick="closeMenu()">Home</a>
+  <a href="swifthaul_tracker.html" onclick="closeMenu()">Track</a>
+  <a href="swifthaul_account.html" onclick="closeMenu()">My Account</a>
+  <a href="#" onclick="signOut()">Sign Out</a>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-tag">Shipping Rates</div>
+  <h1>Ship it. <em>Price it. Pay it.</em></h1>
+  <p>Choose your service, enter your shipment details, pay securely, and get your tracking number — all in one place.</p>
+</div>
+
+<!-- STEPS -->
+<div class="steps-bar" id="stepsBar">
+  <div class="step-item active" id="step1">
+    <div class="step-num">1</div><span>Choose Service</span>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step-item" id="step2">
+    <div class="step-num">2</div><span>Review &amp; Pay</span>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step-item" id="step3">
+    <div class="step-num">3</div><span>Receipt</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- STEP 1: PRICING + CALCULATOR -->
+  <div id="pricingSection">
+    <div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:1.25rem">Select a Service</div>
+    <div class="pricing-grid" id="pricingGrid">
+      <!-- rendered by JS -->
+    </div>
+
+    <div class="calc-section">
+      <div class="calc-title">Calculate Your Rate</div>
+      <div class="calc-grid">
+        <div class="form-group">
+          <label class="field-label">Origin (City, State)</label>
+          <input class="field-input" id="calcOrigin" type="text" placeholder="Chicago, IL">
+        </div>
+        <div class="form-group">
+          <label class="field-label">Destination (City, State)</label>
+          <input class="field-input" id="calcDest" type="text" placeholder="Los Angeles, CA">
+        </div>
+        <div class="form-group">
+          <label class="field-label">Weight (lbs)</label>
+          <input class="field-input" id="calcWeight" type="number" min="0.1" step="0.1" placeholder="10" oninput="calcPrice()">
+        </div>
+        <div class="form-group">
+          <label class="field-label">Dimensions (in)</label>
+          <input class="field-input" id="calcDims" type="text" placeholder='12" × 10" × 8"'>
+        </div>
+        <div class="form-group">
+          <label class="field-label">Declared Value (USD)</label>
+          <input class="field-input" id="calcValue" type="number" min="0" step="1" placeholder="500" oninput="calcPrice()">
+        </div>
+        <div class="form-group">
+          <label class="field-label">Notes / Special Instructions</label>
+          <input class="field-input" id="calcNotes" type="text" placeholder="Fragile, hazmat, temperature requirements…">
+        </div>
+      </div>
+      <div class="price-display" id="priceDisplay">
+        <div>
+          <div class="pd-label">Estimated Total</div>
+          <div class="pd-amount" id="pdAmount">$0.00</div>
+          <div class="pd-breakdown" id="pdBreakdown">Select a service and enter weight to calculate</div>
+        </div>
+        <button class="btn-proceed" id="btnProceed" onclick="goToCheckout()" disabled>Proceed to Payment →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: CHECKOUT -->
+  <div class="checkout-section" id="checkoutSection">
+    <button class="btn-back" onclick="goBack()">← Back to Pricing</button>
+    <div class="checkout-grid">
+      <!-- ORDER SUMMARY -->
+      <div class="order-summary">
+        <div class="os-title">Order Summary</div>
+        <div id="osSummary"><!-- filled by JS --></div>
+        <div class="os-total">
+          <span class="os-total-label">Total Due</span>
+          <span class="os-total-amount" id="osTotalAmount">$0.00</span>
+        </div>
+      </div>
+      <!-- PAYMENT FORM -->
+      <div class="payment-form">
+        <div class="pf-title">Payment Details</div>
+
+        <div class="pf-section-label">Contact Information</div>
+        <div class="form-group" style="margin-bottom:0.75rem">
+          <label class="field-label">Full Name</label>
+          <input class="field-input" id="payName" type="text" placeholder="John Smith">
+        </div>
+        <div class="form-row" style="margin-bottom:0.75rem">
+          <div class="form-group">
+            <label class="field-label">Email</label>
+            <input class="field-input" id="payEmail" type="email" placeholder="you@company.com">
+          </div>
+          <div class="form-group">
+            <label class="field-label">Phone</label>
+            <input class="field-input" id="payPhone" type="tel" placeholder="(312) 555-0100">
+          </div>
+        </div>
+
+        <div class="pf-section-label">Payment Method</div>
+        <div class="payment-methods">
+          <button class="pm-option selected" onclick="selectPM(this,'card')">Credit / Debit Card</button>
+          <button class="pm-option" onclick="selectPM(this,'bank')">Bank Transfer</button>
+          <button class="pm-option" onclick="selectPM(this,'invoice')">Invoice (Net 30)</button>
+        </div>
+
+        <div class="card-fields show" id="cardFields">
+          <div class="form-group" style="margin-bottom:0.75rem">
+            <label class="field-label">Card Number</label>
+            <input class="field-input" id="cardNum" type="text" placeholder="1234 5678 9012 3456" maxlength="19" oninput="fmtCard(this)">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="field-label">Expiry</label>
+              <input class="field-input" id="cardExp" type="text" placeholder="MM/YY" maxlength="5" oninput="fmtExp(this)">
+            </div>
+            <div class="form-group">
+              <label class="field-label">CVV</label>
+              <input class="field-input" id="cardCvv" type="text" placeholder="123" maxlength="4">
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:0.75rem">
+            <label class="field-label">Name on Card</label>
+            <input class="field-input" id="cardName" type="text" placeholder="John Smith">
+          </div>
+        </div>
+
+        <div id="bankFields" style="display:none;background:#1a1a1a;border:0.5px solid var(--border);border-radius:2px;padding:1rem;font-size:0.85rem;line-height:1.8;color:var(--muted)">
+          <strong style="color:var(--white)">SwiftHaul Bank Transfer Details</strong><br>
+          Bank: First National Bank of Illinois<br>
+          Account: 4471-8820-001<br>
+          Routing: 071000013<br>
+          Reference: <span id="bankRef" style="color:var(--yellow)">SH-PAY-XXXXXX</span><br>
+          <span style="font-size:0.75rem;margin-top:0.5rem;display:block">Include the reference number in your transfer memo. Shipment will be processed upon receipt.</span>
+        </div>
+
+        <div id="invoiceFields" style="display:none;background:#1a1a1a;border:0.5px solid var(--border);border-radius:2px;padding:1rem;font-size:0.85rem;line-height:1.8;color:var(--muted)">
+          <strong style="color:var(--white)">Net 30 Invoice</strong><br>
+          Available for approved business accounts only. By selecting this option you agree to pay within 30 days of invoice date. A 1.5% monthly finance charge applies to overdue balances.
+        </div>
+
+        <div class="field-err" id="payErr"></div>
+        <button class="btn-pay" id="btnPay" onclick="processPayment()">Pay <span id="payBtnAmount">$0.00</span> →</button>
+        <p class="pay-note">🔒 This is a demo payment system. No real charges are made. In production, integrate Stripe or another payment processor.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: RECEIPT -->
+  <div class="receipt-section" id="receiptSection">
+    <div class="receipt-wrap">
+      <div class="receipt-success">
+        <div class="receipt-check">✓</div>
+        <h2>Payment Confirmed</h2>
+        <p>Your shipment has been booked and is being processed.<br>Your tracking number is:</p>
+        <div class="receipt-tracking" id="receiptTrackingId">SH-0000000</div>
+      </div>
+
+      <!-- PRINTABLE RECEIPT -->
+      <div id="printableReceipt">
+        <div class="receipt-card">
+          <div class="receipt-header">
+            <div class="rh-left">Swift<span>Haul</span> Logistics</div>
+            <div class="rh-right">
+              <div id="receiptDate"></div>
+              <div>200 W. Monroe St., Chicago, IL 60606</div>
+              <div>(312) 555-0190 · ops@swifthaul.com</div>
+            </div>
+          </div>
+          <div class="receipt-body">
+            <div style="font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--yellow);margin-bottom:0.75rem">Shipment Details</div>
+            <div class="receipt-row"><span class="rr-label">Tracking Number</span><span class="rr-val" id="rTrackingId" style="color:var(--yellow);font-family:var(--font-head);font-weight:700"></span></div>
+            <div class="receipt-row"><span class="rr-label">Service</span><span class="rr-val" id="rService"></span></div>
+            <div class="receipt-row"><span class="rr-label">Origin</span><span class="rr-val" id="rOrigin"></span></div>
+            <div class="receipt-row"><span class="rr-label">Destination</span><span class="rr-val" id="rDest"></span></div>
+            <div class="receipt-row"><span class="rr-label">Weight</span><span class="rr-val" id="rWeight"></span></div>
+            <div class="receipt-row"><span class="rr-label">Dimensions</span><span class="rr-val" id="rDims"></span></div>
+            <div class="receipt-row"><span class="rr-label">Declared Value</span><span class="rr-val" id="rValue"></span></div>
+            <div class="receipt-row"><span class="rr-label">Est. Transit</span><span class="rr-val" id="rTransit"></span></div>
+
+            <div style="font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--yellow);margin:1.25rem 0 0.75rem">Customer Information</div>
+            <div class="receipt-row"><span class="rr-label">Name</span><span class="rr-val" id="rName"></span></div>
+            <div class="receipt-row"><span class="rr-label">Email</span><span class="rr-val" id="rEmail"></span></div>
+            <div class="receipt-row"><span class="rr-label">Phone</span><span class="rr-val" id="rPhone"></span></div>
+
+            <div style="font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--yellow);margin:1.25rem 0 0.75rem">Payment Summary</div>
+            <div class="receipt-row"><span class="rr-label">Base Rate</span><span class="rr-val" id="rBase"></span></div>
+            <div class="receipt-row"><span class="rr-label">Weight Surcharge</span><span class="rr-val" id="rWeightCharge"></span></div>
+            <div class="receipt-row"><span class="rr-label">Insurance (0.5%)</span><span class="rr-val" id="rInsurance"></span></div>
+            <div class="receipt-row"><span class="rr-label">Fuel Surcharge (8%)</span><span class="rr-val" id="rFuel"></span></div>
+            <div class="receipt-row"><span class="rr-label">Payment Method</span><span class="rr-val" id="rPayMethod"></span></div>
+            <div class="receipt-row"><span class="rr-label">Payment Reference</span><span class="rr-val" id="rPayRef" style="font-family:monospace;font-size:0.82rem"></span></div>
+          </div>
+          <div class="receipt-total">
+            <span class="rt-label">Total Paid (USD)</span>
+            <span class="rt-amount" id="rTotal"></span>
+          </div>
+        </div>
+        <p style="font-size:0.73rem;color:#444;text-align:center;line-height:1.6;margin-top:0.75rem">Thank you for shipping with SwiftHaul. Keep this receipt for your records. For support call 1 (800) 555-0190 or email ops@swifthaul.com.</p>
+      </div>
+
+      <div class="receipt-actions">
+        <button class="btn-print" onclick="window.print()">🖨 Print Receipt</button>
+        <a class="btn-track" id="btnTrackShipment" href="swifthaul_tracker.html">Track My Shipment →</a>
+        <a class="btn-track" href="swifthaul_logistics_site.html">Back to Home</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <a class="foot-logo" href="swifthaul_logistics_site.html">Swift<span>Haul</span></a>
+  <div class="foot-copy">© 2026 SwiftHaul Logistics, Inc. — Chicago, IL USA</div>
+  <div class="foot-links">
+    <a href="swifthaul_tracker.html">Track</a>
+    <a href="swifthaul_contact.html">Contact</a>
+    <a href="swifthaul_privacy.html">Privacy</a>
+    <a href="swifthaul_terms.html">Terms</a>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── AUTH ──
+let sb, user;
+window.addEventListener('DOMContentLoaded', () => {
+  sb = window.__sb;
+  user = window.__user;
+  if (user) {
+    document.getElementById('payName').value = user.user_metadata?.full_name || '';
+    document.getElementById('payEmail').value = user.email || '';
+  }
+  renderPricing();
+});
+
+function toggleMenu(){document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileMenu').classList.toggle('open');document.body.style.overflow=document.getElementById('mobileMenu').classList.contains('open')?'hidden':'';}
+function closeMenu(){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileMenu').classList.remove('open');document.body.style.overflow='';}
+async function signOut(){if(sb)await sb.auth.signOut();window.location.replace('index.html');}
+
+// ── PRICING DATA ──
+const SERVICES = [
+  {
+    id:'air-express', icon:'✈', name:'Air Freight Express', transit:'Next Day – 3 Days',
+    base:89, perLb:2.20, badge:'Fastest',
+    features:['Next-day domestic available','Priority airport handling','Real-time GPS tracking','Signature confirmation']
+  },
+  {
+    id:'air-priority', icon:'✈', name:'Air Freight Priority', transit:'2–4 Days',
+    base:59, perLb:1.60,
+    features:['Major hub connections','Same-day drop-off cutoff 4PM','Live tracking updates','ePOD delivery confirmation']
+  },
+  {
+    id:'ground-express', icon:'🚛', name:'Ground Express', transit:'2–5 Days',
+    base:35, perLb:0.85,
+    features:['Nationwide FTL & LTL','Guaranteed delivery windows','GPS-monitored trucks','Door-to-door service']
+  },
+  {
+    id:'ground-standard', icon:'🚛', name:'Ground Standard', transit:'3–7 Days',
+    base:22, perLb:0.55,
+    features:['Most cost-effective','Nationwide coverage','Hub-to-hub relay','Daily departure schedule']
+  },
+  {
+    id:'ocean-freight', icon:'🚢', name:'Ocean Freight', transit:'14–35 Days',
+    base:180, perLb:0.18,
+    features:['Full container & LCL','Major US port access','Customs coordination','Best rate for heavy cargo']
+  },
+  {
+    id:'cold-chain', icon:'❄', name:'Cold Chain Express', transit:'1–4 Days',
+    base:120, perLb:3.10,
+    features:['FDA-compliant','2°F – 77°F maintained','24/7 temp monitoring','Pharma & food grade']
+  }
+];
+
+let selectedService = null;
+let calculatedPrice = { base:0, weightCharge:0, insurance:0, fuel:0, total:0 };
+let selectedPM = 'card';
+
+function renderPricing() {
+  const grid = document.getElementById('pricingGrid');
+  grid.innerHTML = SERVICES.map(s => `
+    <div class="pricing-card" id="pc-${s.id}" onclick="selectService('${s.id}')">
+      ${s.badge ? `<div class="pc-badge">${s.badge}</div>` : ''}
+      <div class="pc-icon">${s.icon}</div>
+      <div class="pc-name">${s.name}</div>
+      <div class="pc-transit">${s.transit}</div>
+      <div class="pc-price">$${s.base}<span> base</span></div>
+      <div class="pc-base">+ $${s.perLb.toFixed(2)}/lb · fuel & insurance extra</div>
+      <ul class="pc-features">${s.features.map(f=>`<li>${f}</li>`).join('')}</ul>
+    </div>`).join('');
+}
+
+function selectService(id) {
+  selectedService = SERVICES.find(s => s.id === id);
+  document.querySelectorAll('.pricing-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('pc-' + id).classList.add('selected');
+  calcPrice();
+}
+
+function calcPrice() {
+  if (!selectedService) return;
+  const weight = parseFloat(document.getElementById('calcWeight').value) || 0;
+  const value = parseFloat(document.getElementById('calcValue').value) || 0;
+  const s = selectedService;
+  const base = s.base;
+  const weightCharge = weight * s.perLb;
+  const insurance = value * 0.005;
+  const subtotal = base + weightCharge + insurance;
+  const fuel = subtotal * 0.08;
+  const total = subtotal + fuel;
+  calculatedPrice = { base, weightCharge, insurance, fuel, total };
+  document.getElementById('pdAmount').textContent = '$' + total.toFixed(2);
+  document.getElementById('pdBreakdown').textContent =
+    `Base $${base.toFixed(2)} · Weight $${weightCharge.toFixed(2)} · Insurance $${insurance.toFixed(2)} · Fuel surcharge $${fuel.toFixed(2)}`;
+  const btn = document.getElementById('btnProceed');
+  btn.disabled = weight <= 0;
+  document.getElementById('payBtnAmount').textContent = '$' + total.toFixed(2);
+}
+
+// ── CHECKOUT ──
+function goToCheckout() {
+  if (!selectedService || !document.getElementById('calcWeight').value) {
+    showToast('Please select a service and enter weight.', true); return;
+  }
+  const origin = document.getElementById('calcOrigin').value.trim();
+  const dest = document.getElementById('calcDest').value.trim();
+  if (!origin || !dest) { showToast('Please enter origin and destination.', true); return; }
+
+  // Fill order summary
+  const s = selectedService;
+  const p = calculatedPrice;
+  const weight = document.getElementById('calcWeight').value;
+  document.getElementById('osSummary').innerHTML = `
+    <div class="os-row"><span class="os-label">Service</span><span class="os-val">${s.name}</span></div>
+    <div class="os-row"><span class="os-label">Transit Time</span><span class="os-val">${s.transit}</span></div>
+    <div class="os-row"><span class="os-label">Origin</span><span class="os-val">${origin}</span></div>
+    <div class="os-row"><span class="os-label">Destination</span><span class="os-val">${dest}</span></div>
+    <div class="os-row"><span class="os-label">Weight</span><span class="os-val">${weight} lbs</span></div>
+    <div class="os-row"><span class="os-label">Base Rate</span><span class="os-val">$${p.base.toFixed(2)}</span></div>
+    <div class="os-row"><span class="os-label">Weight Charge</span><span class="os-val">$${p.weightCharge.toFixed(2)}</span></div>
+    <div class="os-row"><span class="os-label">Insurance</span><span class="os-val">$${p.insurance.toFixed(2)}</span></div>
+    <div class="os-row"><span class="os-label">Fuel Surcharge (8%)</span><span class="os-val">$${p.fuel.toFixed(2)}</span></div>`;
+  document.getElementById('osTotalAmount').textContent = '$' + p.total.toFixed(2);
+  document.getElementById('payBtnAmount').textContent = '$' + p.total.toFixed(2);
+
+  // Generate bank ref
+  const ref = 'SH-PAY-' + Math.random().toString(36).substr(2,6).toUpperCase();
+  document.getElementById('bankRef').textContent = ref;
+
+  setStep(2);
+  document.getElementById('pricingSection').style.display = 'none';
+  document.getElementById('checkoutSection').style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+function goBack() {
+  setStep(1);
+  document.getElementById('checkoutSection').style.display = 'none';
+  document.getElementById('pricingSection').style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+function selectPM(el, method) {
+  document.querySelectorAll('.pm-option').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedPM = method;
+  document.getElementById('cardFields').classList.toggle('show', method === 'card');
+  document.getElementById('bankFields').style.display = method === 'bank' ? 'block' : 'none';
+  document.getElementById('invoiceFields').style.display = method === 'invoice' ? 'block' : 'none';
+}
+
+function fmtCard(el) {
+  let v = el.value.replace(/\D/g,'').substr(0,16);
+  el.value = v.replace(/(.{4})/g,'$1 ').trim();
+}
+function fmtExp(el) {
+  let v = el.value.replace(/\D/g,'').substr(0,4);
+  if (v.length >= 2) v = v.substr(0,2) + '/' + v.substr(2);
+  el.value = v;
+}
+
+// ── PAYMENT ──
+async function processPayment() {
+  const name = document.getElementById('payName').value.trim();
+  const email = document.getElementById('payEmail').value.trim();
+  const phone = document.getElementById('payPhone').value.trim();
+  const errEl = document.getElementById('payErr');
+  errEl.style.display = 'none';
+
+  if (!name || !email) { errEl.textContent = 'Please enter your name and email.'; errEl.style.display = 'block'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'block'; return; }
+
+  if (selectedPM === 'card') {
+    const card = document.getElementById('cardNum').value.replace(/\s/g,'');
+    const exp = document.getElementById('cardExp').value;
+    const cvv = document.getElementById('cardCvv').value;
+    if (card.length < 13 || !exp.includes('/') || cvv.length < 3) {
+      errEl.textContent = 'Please enter valid card details.'; errEl.style.display = 'block'; return;
+    }
+  }
+
+  const btn = document.getElementById('btnPay');
+  btn.disabled = true; btn.textContent = 'Processing…';
+
+  // Generate tracking ID
+  const trackingId = 'SH-' + Math.floor(1000000 + Math.random() * 9000000);
+  const payRef = 'SH-PAY-' + Math.random().toString(36).substr(2,8).toUpperCase();
+  const origin = document.getElementById('calcOrigin').value.trim();
+  const dest = document.getElementById('calcDest').value.trim();
+  const weight = document.getElementById('calcWeight').value + ' lbs';
+  const dims = document.getElementById('calcDims').value.trim() || '—';
+  const declaredValue = document.getElementById('calcValue').value;
+  const notes = document.getElementById('calcNotes').value.trim();
+  const p = calculatedPrice;
+  const s = selectedService;
+  const now = new Date().toISOString();
+
+  // Save to Supabase
+  if (sb) {
+    const shipmentPayload = {
+      id: trackingId,
+      status: 'Processing',
+      origin, dest,
+      service: s.name,
+      eta: s.transit + ' from ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+      weight,
+      location: 'SwiftHaul Booking Center',
+      origin_code: origin.split(',')[0].substr(0,3).toUpperCase(),
+      dest_code: dest.split(',')[0].substr(0,3).toUpperCase(),
+      next_stop: 'Awaiting pickup',
+      amount_paid: p.total,
+      currency: 'USD',
+      payment_status: 'paid',
+      payment_ref: payRef,
+      paid_at: now,
+      customer_name: name,
+      customer_email: email,
+      customer_phone: phone,
+      milestones: [
+        { loc: 'Booking confirmed — ' + trackingId, time: new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' EST', note: 'Payment received · Ref: '+payRef, state: 'active' },
+        { loc: 'Awaiting pickup scheduling', time: 'Pending', note: 'Our team will contact you within 2 hours', state: 'pending' },
+        { loc: origin + ' — Pickup', time: 'Scheduled', note: '', state: 'pending' },
+        { loc: dest + ' — Delivery', time: s.transit, note: 'Estimated delivery window', state: 'pending' }
+      ],
+      updated_at: now
+    };
+    const { error: shipErr } = await sb.from('shipments').insert(shipmentPayload);
+    if (shipErr) console.warn('Shipment save error:', shipErr.message);
+
+    const paymentPayload = {
+      tracking_id: trackingId,
+      customer_name: name,
+      customer_email: email,
+      customer_phone: phone,
+      service: s.name,
+      origin, destination: dest,
+      weight,
+      dimensions: dims,
+      amount: p.total,
+      currency: 'USD',
+      payment_method: selectedPM,
+      payment_ref: payRef,
+      notes
+    };
+    const { error: payErr } = await sb.from('payments').insert(paymentPayload);
+    if (payErr) console.warn('Payment save error:', payErr.message);
+  }
+
+  btn.disabled = false; btn.textContent = 'Pay $' + p.total.toFixed(2) + ' →';
+
+  // Fill receipt
+  const now2 = new Date();
+  document.getElementById('receiptDate').textContent = now2.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'});
+  document.getElementById('receiptTrackingId').textContent = trackingId;
+  document.getElementById('rTrackingId').textContent = trackingId;
+  document.getElementById('rService').textContent = s.name;
+  document.getElementById('rOrigin').textContent = origin;
+  document.getElementById('rDest').textContent = dest;
+  document.getElementById('rWeight').textContent = weight;
+  document.getElementById('rDims').textContent = dims;
+  document.getElementById('rValue').textContent = declaredValue ? '$' + parseFloat(declaredValue).toFixed(2) : '—';
+  document.getElementById('rTransit').textContent = s.transit;
+  document.getElementById('rName').textContent = name;
+  document.getElementById('rEmail').textContent = email;
+  document.getElementById('rPhone').textContent = phone || '—';
+  document.getElementById('rBase').textContent = '$' + p.base.toFixed(2);
+  document.getElementById('rWeightCharge').textContent = '$' + p.weightCharge.toFixed(2);
+  document.getElementById('rInsurance').textContent = '$' + p.insurance.toFixed(2);
+  document.getElementById('rFuel').textContent = '$' + p.fuel.toFixed(2);
+  document.getElementById('rPayMethod').textContent = selectedPM === 'card' ? 'Credit/Debit Card' : selectedPM === 'bank' ? 'Bank Transfer' : 'Invoice (Net 30)';
+  document.getElementById('rPayRef').textContent = payRef;
+  document.getElementById('rTotal').textContent = '$' + p.total.toFixed(2);
+  document.getElementById('btnTrackShipment').href = 'swifthaul_tracker.html?id=' + trackingId;
+
+  setStep(3);
+  document.getElementById('checkoutSection').style.display = 'none';
+  document.getElementById('receiptSection').style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+// ── STEPS ──
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('step'+i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  });
+}
+
+function showToast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(err?' err':'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+</script>
+</body>
+</html>

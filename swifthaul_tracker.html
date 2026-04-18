@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="swifthaul_config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="swifthaul_guard.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwiftHaul — Track Your Shipment</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --black:#0a0a0a;--white:#f5f4f0;--yellow:#f5c518;
+  --gray:#1a1a1a;--card:#111;--border:#2a2a2a;--muted:#888;
+  --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;
+  --px:clamp(1.25rem,5vw,4rem);
+}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:var(--font-body);min-height:100vh}
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.1rem var(--px);background:rgba(10,10,10,0.95);backdrop-filter:blur(12px);border-bottom:0.5px solid var(--border)}
+.logo{font-family:var(--font-head);font-weight:800;font-size:1.25rem;letter-spacing:-0.02em}
+.logo span{color:var(--yellow)}
+.nav-links{display:flex;gap:1.75rem;list-style:none}
+.nav-links a{text-decoration:none;color:var(--muted);font-size:0.8rem;letter-spacing:0.06em;text-transform:uppercase;transition:color 0.2s}
+.nav-links a:hover{color:var(--white)}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;background:none;border:none}
+.hamburger span{display:block;width:22px;height:1.5px;background:var(--white);transition:all 0.3s}
+.hamburger.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+.mobile-menu{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99;background:rgba(10,10,10,0.98);flex-direction:column;align-items:center;justify-content:center;gap:2rem}
+.mobile-menu.open{display:flex}
+.mobile-menu a{text-decoration:none;color:var(--white);font-family:var(--font-head);font-size:2rem;font-weight:800;transition:color 0.2s}
+.mobile-menu a:hover{color:var(--yellow)}
+.hero{padding:4rem var(--px) 3rem;border-bottom:0.5px solid var(--border);position:relative;overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:0.2}
+.hero-tag{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--yellow);margin-bottom:1rem}
+.hero-tag::before{content:'';width:22px;height:1px;background:var(--yellow)}
+.hero h1{font-family:var(--font-head);font-size:clamp(2rem,5vw,3.5rem);font-weight:800;letter-spacing:-0.03em;line-height:1;margin-bottom:0.75rem;position:relative}
+.hero h1 em{color:var(--yellow);font-style:normal}
+.hero p{color:var(--muted);font-size:0.92rem;line-height:1.7;max-width:480px;font-weight:300;position:relative}
+.track-section{padding:3rem var(--px)}
+.track-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start}
+.track-card{background:var(--card);border:0.5px solid var(--border);border-radius:2px;padding:2rem}
+.track-card h2{font-family:var(--font-head);font-size:1.2rem;font-weight:700;margin-bottom:0.35rem}
+.track-hint{color:var(--muted);font-size:0.8rem;margin-bottom:1.5rem;line-height:1.5}
+.track-input-wrap{display:flex;margin-bottom:1rem}
+.track-input{flex:1;min-width:0;background:#1a1a1a;border:0.5px solid var(--border);border-right:none;color:var(--white);padding:0.75rem 1rem;font-family:var(--font-body);font-size:0.92rem;outline:none;border-radius:2px 0 0 2px;transition:border-color 0.2s;letter-spacing:0.04em}
+.track-input:focus{border-color:#555}
+.track-btn{background:var(--yellow);color:var(--black);border:none;padding:0.75rem 1.4rem;font-family:var(--font-body);font-weight:500;font-size:0.9rem;cursor:pointer;border-radius:0 2px 2px 0;white-space:nowrap;transition:opacity 0.2s;flex-shrink:0}
+.track-btn:hover{opacity:0.85}
+.track-btn:disabled{opacity:0.5;cursor:not-allowed}
+.recent-label{font-size:0.66rem;color:var(--muted);margin-bottom:0.45rem;letter-spacing:0.08em;text-transform:uppercase}
+.recent-pills{display:flex;gap:0.4rem;flex-wrap:wrap;min-height:24px}
+.pill{background:#1a1a1a;border:0.5px solid var(--border);color:var(--muted);padding:0.28rem 0.65rem;font-size:0.72rem;border-radius:1px;cursor:pointer;transition:all 0.2s;font-family:var(--font-body)}
+.pill:hover{border-color:#555;color:var(--white)}
+#result-panel{display:none;margin-top:1.75rem}
+.divider{border-top:0.5px solid var(--border);margin:0 0 1.4rem}
+.result-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.4rem}
+.result-id{font-family:var(--font-head);font-weight:800;font-size:1.1rem}
+.result-sub{color:var(--muted);font-size:0.78rem;margin-top:0.15rem}
+.status-badge{display:inline-block;padding:0.28rem 0.8rem;border-radius:1px;font-size:0.7rem;font-weight:500;letter-spacing:0.05em;text-transform:uppercase}
+.s-transit{background:#1a3a1a;color:#4caf50;border:0.5px solid #2a5a2a}
+.s-delivered{background:#1a2a1a;color:#69f077;border:0.5px solid #2a4a2a}
+.s-customs{background:#3a2a0a;color:#f5c518;border:0.5px solid #5a420a}
+.s-processing{background:#1a1a3a;color:#7ba7ff;border:0.5px solid #2a2a5a}
+.s-exception{background:#3a1a1a;color:#e24b4a;border:0.5px solid #5a2a2a}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:1.5rem}
+.meta-box{background:#1a1a1a;padding:0.7rem 0.85rem;border-radius:2px}
+.meta-lbl{font-size:0.66rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.2rem}
+.meta-val{font-size:0.85rem;font-weight:500;line-height:1.4}
+.timeline-label{font-size:0.66rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.85rem}
+.timeline{position:relative;padding-left:1.5rem}
+.timeline::before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--border)}
+.t-step{position:relative;margin-bottom:1.2rem}
+.t-step:last-child{margin-bottom:0}
+.t-dot{position:absolute;left:-1.5rem;top:3px;width:11px;height:11px;border-radius:50%;border:1.5px solid var(--border);background:var(--card)}
+.t-dot.active{background:var(--yellow);border-color:var(--yellow)}
+.t-dot.done{background:#333;border-color:#555}
+.t-loc{font-size:0.85rem;font-weight:500;margin-bottom:0.12rem}
+.t-time{font-size:0.72rem;color:var(--muted)}
+.t-note{font-size:0.76rem;color:#aaa;margin-top:0.15rem}
+.map-card{background:var(--card);border:0.5px solid var(--border);border-radius:2px;overflow:hidden;position:sticky;top:80px}
+.map-area{height:260px;background:#0d0d0d;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.map-bg{position:absolute;inset:0;background-image:linear-gradient(#1a1a1a 1px,transparent 1px),linear-gradient(90deg,#1a1a1a 1px,transparent 1px);background-size:28px 28px}
+.map-info{padding:1.1rem}
+.map-row{display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:0.5px solid var(--border)}
+.map-row:last-child{border-bottom:none}
+.map-lbl{font-size:0.75rem;color:var(--muted);flex-shrink:0}
+.map-val{font-size:0.82rem;font-weight:500;text-align:right;max-width:60%;word-break:break-word}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.pulse{animation:pulse 2s infinite}
+.not-found{text-align:center;padding:2rem 1rem;color:var(--muted)}
+.not-found-icon{font-size:2.5rem;margin-bottom:0.75rem}
+.not-found-title{font-family:var(--font-head);font-size:1rem;font-weight:700;color:var(--white);margin-bottom:0.4rem}
+footer{border-top:0.5px solid var(--border);padding:2rem var(--px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;background:var(--gray)}
+.foot-logo{font-family:var(--font-head);font-weight:800;font-size:1rem}
+.foot-logo span{color:var(--yellow)}
+.foot-copy{font-size:0.75rem;color:#555}
+.foot-links{display:flex;gap:1.25rem;flex-wrap:wrap}
+.foot-links a{font-size:0.75rem;color:#555;text-decoration:none;transition:color 0.2s}
+.foot-links a:hover{color:var(--white)}
+@media(max-width:768px){
+  .nav-links{display:none}.hamburger{display:flex}
+  .track-grid{grid-template-columns:1fr}.map-card{position:static}
+}
+@media(max-width:480px){.meta-grid{grid-template-columns:1fr}footer{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="swifthaul_logistics_site.html" style="text-decoration:none;color:inherit">Swift<span>Haul</span></a></div>
+  <ul class="nav-links">
+    <li><a href="swifthaul_logistics_site.html#services">Services</a></li>
+    <li><a href="swifthaul_logistics_site.html#coverage">Coverage</a></li>
+    <li><a href="swifthaul_shipping.html">Ship Now</a></li>
+    <li><a href="swifthaul_contact.html">Contact</a></li>
+    <li><a href="swifthaul_account.html" style="color:var(--yellow)">My Account</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+<button onclick="signOut()" style="background:transparent;border:0.5px solid var(--border);color:var(--muted);padding:0.4rem 0.9rem;font-family:var(--font-body);font-size:0.78rem;cursor:pointer;border-radius:2px;transition:all 0.2s" onmouseover="this.style.color='#f5f4f0';this.style.borderColor='#555'" onmouseout="this.style.color='#888';this.style.borderColor='#2a2a2a'">Sign Out</button>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="swifthaul_logistics_site.html" onclick="closeMenu()">Home</a>
+  <a href="swifthaul_quote.html" onclick="closeMenu()">Get a Quote</a>
+  <a href="swifthaul_contact.html" onclick="closeMenu()">Contact</a>
+</div>
+
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div style="position:relative;z-index:1">
+    <div class="hero-tag">Shipment Tracking</div>
+    <h1>Where's your <em>package?</em></h1>
+    <p>Enter your SwiftHaul tracking number for real-time status, location history, and estimated delivery — all times EST.</p>
+  </div>
+</div>
+
+<div class="track-section">
+  <div class="track-grid">
+    <div>
+      <div class="track-card">
+        <h2>Track a Shipment</h2>
+        <p class="track-hint">Your tracking number starts with SH- followed by 7 digits. Find it in your confirmation email or Bill of Lading.</p>
+        <div class="track-input-wrap">
+          <input class="track-input" id="trackInput" type="text" placeholder="SH-1042893" maxlength="12" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')doTrack()">
+          <button class="track-btn" id="trackBtn" onclick="doTrack()">Track →</button>
+        </div>
+        
+        <div id="result-panel"></div>
+      </div>
+    </div>
+    <div>
+      <div class="map-card">
+        <div class="map-area">
+          <div class="map-bg"></div>
+          <svg id="map-svg" width="82%" height="68%" viewBox="0 0 400 160" style="position:relative;z-index:1;display:none">
+            <defs><marker id="arr" markerWidth="6" markerHeight="4" refX="3" refY="2" orient="auto"><polygon points="0 0,6 2,0 4" fill="#f5c518"/></marker></defs>
+            <line x1="40" y1="80" x2="360" y2="80" stroke="#2a2a2a" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <line id="route-prog" x1="40" y1="80" x2="40" y2="80" stroke="#f5c518" stroke-width="2" marker-end="url(#arr)"/>
+            <circle id="o-dot" cx="40" cy="80" r="5" fill="#f5c518"/>
+            <circle id="d-dot" cx="360" cy="80" r="5" fill="#333" stroke="#555" stroke-width="1.5"/>
+            <circle id="p-dot" cx="40" cy="80" r="4" fill="#f5c518" class="pulse"/>
+            <text id="o-lbl" x="40" y="106" text-anchor="middle" fill="#555" font-size="10" font-family="DM Sans,sans-serif">—</text>
+            <text id="d-lbl" x="360" y="106" text-anchor="middle" fill="#555" font-size="10" font-family="DM Sans,sans-serif">—</text>
+            <text id="p-lbl" x="200" y="52" text-anchor="middle" fill="#f5c518" font-size="9" font-family="DM Sans,sans-serif" font-weight="600"></text>
+          </svg>
+          <div id="map-empty" style="text-align:center;color:#2a2a2a;position:relative;z-index:1">
+            <div style="font-size:2rem;margin-bottom:0.5rem">📦</div>
+            <div style="font-size:0.73rem;letter-spacing:0.08em;text-transform:uppercase">Enter a tracking ID</div>
+          </div>
+        </div>
+        <div class="map-info" id="map-info" style="display:none">
+          <div class="map-row"><span class="map-lbl">Current Location</span><span class="map-val" id="mi-loc">—</span></div>
+          <div class="map-row"><span class="map-lbl">Next Stop</span><span class="map-val" id="mi-next">—</span></div>
+          <div class="map-row"><span class="map-lbl">Weight</span><span class="map-val" id="mi-weight">—</span></div>
+          <div class="map-row"><span class="map-lbl">Last Updated</span><span class="map-val" id="mi-updated">—</span></div>
+        </div>
+        <div id="map-info-empty" style="padding:1.25rem;text-align:center;color:var(--muted);font-size:0.82rem">Track a shipment to view route details</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-logo"><a href="swifthaul_logistics_site.html" style="text-decoration:none;color:inherit">Swift<span>Haul</span></a></div>
+  <div class="foot-copy">© 2026 SwiftHaul Logistics, Inc. — Chicago, IL USA</div>
+  <div class="foot-links">
+    <a href="tel:3125550190">(312) 555-0190</a>
+    <a href="mailto:ops@swifthaul.com">ops@swifthaul.com</a>
+    <a href="swifthaul_privacy.html">Privacy</a>
+    <a href="swifthaul_terms.html">Terms</a>
+  </div>
+</footer>
+
+<script>
+let sb = null;
+function initSB() {
+  if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR_PROJECT')) return false;
+  if (!sb) sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return true;
+}
+
+function toggleMenu(){document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileMenu').classList.toggle('open');document.body.style.overflow=document.getElementById('mobileMenu').classList.contains('open')?'hidden':'';}
+function closeMenu(){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileMenu').classList.remove('open');document.body.style.overflow='';}
+
+function statusClass(s){
+  if(s==='In Transit')return 's-transit';if(s==='Delivered')return 's-delivered';
+  if(s==='Customs Hold')return 's-customs';if(s==='Processing')return 's-processing';
+  return 's-exception';
+}
+function calcProgress(ms){
+  if(!ms||!ms.length)return 0;
+  return Math.min((ms.filter(m=>m.state==='done').length+ms.filter(m=>m.state==='active').length*0.5)/ms.length,0.98);
+}
+function fmtUpdated(iso){
+  try{const d=new Date(iso),now=new Date(),diff=Math.floor((now-d)/60000);
+    if(diff<1)return 'Just now';if(diff<60)return diff+' min ago';
+    if(diff<1440)return Math.floor(diff/60)+' hr ago';
+    return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
+  catch{return '—';}
+}
+
+
+
+function loadById(id){document.getElementById('trackInput').value=id;doTrack();}
+function resetMap(){document.getElementById('map-svg').style.display='none';document.getElementById('map-empty').style.display='block';document.getElementById('map-info').style.display='none';document.getElementById('map-info-empty').style.display='block';}
+
+async function doTrack(){
+  const raw=document.getElementById('trackInput').value.trim().toUpperCase();
+  const id=raw.startsWith('SH-')?raw:'SH-'+raw;
+  const panel=document.getElementById('result-panel');
+  const btn=document.getElementById('trackBtn');
+  btn.disabled=true;btn.textContent='Searching…';
+  if(!initSB()){
+    panel.style.display='block';
+    panel.innerHTML='<div class="divider"></div><div style="color:#e24b4a;font-size:0.85rem;padding:0.9rem;background:#1a0a0a;border:0.5px solid #3a1a1a;border-radius:2px">Supabase not configured. See SETUP.md.</div>';
+    btn.disabled=false;btn.textContent='Track →';resetMap();return;
+  }
+  const {data,error}=await sb.from('shipments').select('*,amount_paid,payment_ref,payment_status,customer_name').eq('id',id).single();
+  btn.disabled=false;btn.textContent='Track →';
+  if(error||!data){
+    panel.style.display='block';
+    panel.innerHTML=`<div class="divider"></div><div class="not-found"><div class="not-found-icon">🔍</div><div class="not-found-title">Shipment not found</div><p style="font-size:0.82rem;color:var(--muted);margin-top:0.35rem">No record for <strong style="color:var(--white)">${id}</strong>.<br>Check your number or call <a href="tel:18005550190" style="color:var(--yellow)">1 (800) 555-0190</a>.</p></div>`;
+    resetMap();return;
+  }
+  const ms=data.milestones||[];
+  panel.style.display='block';
+  panel.innerHTML=`
+    <div class="divider"></div>
+    <div class="result-top">
+      <div><div class="result-id">${id}</div><div class="result-sub">${data.origin_code||''}${data.dest_code?' → '+data.dest_code:''}</div></div>
+      <span class="status-badge ${statusClass(data.status)}">${data.status}</span>
+    </div>
+    <div class="meta-grid">
+      <div class="meta-box"><div class="meta-lbl">Origin</div><div class="meta-val">${data.origin||'—'}</div></div>
+      <div class="meta-box"><div class="meta-lbl">Destination</div><div class="meta-val">${data.dest||'—'}</div></div>
+      <div class="meta-box"><div class="meta-lbl">Service</div><div class="meta-val">${data.service||'—'}</div></div>
+      <div class="meta-box"><div class="meta-lbl">Est. Delivery</div><div class="meta-val">${data.eta||'—'}</div></div>
+      ${data.amount_paid?`<div class="meta-box" style="border:0.5px solid #2a5a2a"><div class="meta-lbl" style="color:#4caf50">Amount Paid</div><div class="meta-val" style="color:#f5c518;font-family:var(--font-head)">$${parseFloat(data.amount_paid).toFixed(2)} USD</div></div>`:''}
+      ${data.payment_ref?`<div class="meta-box"><div class="meta-lbl">Payment Ref</div><div class="meta-val" style="font-size:0.75rem;font-family:monospace">${data.payment_ref}</div></div>`:''}
+    </div>
+    <div class="timeline-label">Shipment History — All times EST</div>
+    <div class="timeline">${ms.length?ms.map(m=>`<div class="t-step"><div class="t-dot ${m.state==='active'?'active':m.state==='done'?'done':''}"></div><div class="t-loc">${m.loc}</div><div class="t-time">${m.time}</div>${m.note?`<div class="t-note">${m.note}</div>`:''}</div>`).join(''):'<div style="color:var(--muted);font-size:0.82rem">No milestones recorded yet.</div>'}</div>`;
+  const prog=data.status==='Delivered'?1:calcProgress(ms);
+  const x1=40,x2=360,cx=x1+(x2-x1)*prog;
+  document.getElementById('map-svg').style.display='block';
+  document.getElementById('map-empty').style.display='none';
+  document.getElementById('map-info').style.display='block';
+  document.getElementById('map-info-empty').style.display='none';
+  document.getElementById('route-prog').setAttribute('x2',Math.min(cx,x2-10));
+  document.getElementById('p-dot').setAttribute('cx',cx);
+  document.getElementById('o-lbl').textContent=data.origin_code||'—';
+  document.getElementById('d-lbl').textContent=data.dest_code||'—';
+  document.getElementById('p-lbl').textContent=id;
+  if(prog>=1){document.getElementById('d-dot').setAttribute('fill','#f5c518');document.getElementById('p-dot').style.display='none';}
+  else{document.getElementById('d-dot').setAttribute('fill','#333');document.getElementById('p-dot').style.display='block';}
+  document.getElementById('mi-loc').textContent=data.location||'—';
+  document.getElementById('mi-next').textContent=data.next_stop||'—';
+  document.getElementById('mi-weight').textContent=data.weight||'—';
+  document.getElementById('mi-updated').textContent=fmtUpdated(data.updated_at);
+}
+const urlId=new URLSearchParams(location.search).get('id');
+if(urlId){document.getElementById('trackInput').value=urlId.toUpperCase();doTrack();}
+</script>
+
+<script>
+async function signOut() {
+  const _sb = window.__sb || (typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null);
+  if (_sb) await _sb.auth.signOut();
+  window.location.replace('index.html');
+}
+</script>
+</body>
+</html>

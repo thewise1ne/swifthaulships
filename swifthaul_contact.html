@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="swifthaul_config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="swifthaul_guard.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwiftHaul — Contact Us</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--black:#0a0a0a;--white:#f5f4f0;--yellow:#f5c518;--gray:#1a1a1a;--card:#111;--border:#2a2a2a;--muted:#888;--font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--px:clamp(1.25rem,5vw,4rem);}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:var(--font-body);min-height:100vh}
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.1rem var(--px);background:rgba(10,10,10,0.95);backdrop-filter:blur(12px);border-bottom:0.5px solid var(--border)}
+.logo{font-family:var(--font-head);font-weight:800;font-size:1.25rem;letter-spacing:-0.02em}
+.logo span{color:var(--yellow)}
+.nav-links{display:flex;gap:1.75rem;list-style:none}
+.nav-links a{text-decoration:none;color:var(--muted);font-size:0.8rem;letter-spacing:0.06em;text-transform:uppercase;transition:color 0.2s}
+.nav-links a:hover{color:var(--white)}
+.hero{padding:4rem var(--px) 3rem;border-bottom:0.5px solid var(--border);position:relative;overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:0.2}
+.hero-tag{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--yellow);margin-bottom:1rem}
+.hero-tag::before{content:'';width:22px;height:1px;background:var(--yellow)}
+.hero h1{font-family:var(--font-head);font-size:clamp(2rem,5vw,3.5rem);font-weight:800;letter-spacing:-0.03em;line-height:1;margin-bottom:0.75rem;position:relative}
+.hero h1 em{color:var(--yellow);font-style:normal}
+.hero p{color:var(--muted);font-size:0.92rem;line-height:1.7;max-width:500px;font-weight:300;position:relative}
+.contact-section{padding:3rem var(--px);display:grid;grid-template-columns:1fr 1.6fr;gap:4rem;align-items:start}
+.contact-info h2{font-family:var(--font-head);font-size:1.3rem;font-weight:800;margin-bottom:1.5rem}
+.contact-block{margin-bottom:1.75rem}
+.contact-block-label{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--yellow);margin-bottom:0.6rem}
+.contact-block p{font-size:0.88rem;line-height:1.8;color:var(--muted)}
+.contact-block a{color:var(--white);text-decoration:none;transition:color 0.2s}
+.contact-block a:hover{color:var(--yellow)}
+.hours-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.25rem 1rem}
+.hours-day{font-size:0.82rem;color:var(--muted)}
+.hours-time{font-size:0.82rem;color:var(--white)}
+.form-card{background:var(--card);border:0.5px solid var(--border);border-radius:2px;padding:2rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.form-group{display:flex;flex-direction:column;gap:0.4rem}
+.form-group.full{grid-column:1/-1}
+.field-label{font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)}
+.field-input,.field-select,.field-textarea{background:#1a1a1a;border:0.5px solid var(--border);color:var(--white);padding:0.72rem 0.9rem;font-family:var(--font-body);font-size:0.88rem;outline:none;border-radius:2px;transition:border-color 0.2s;width:100%}
+.field-input:focus,.field-select:focus,.field-textarea:focus{border-color:#555}
+.field-textarea{resize:vertical;min-height:120px;line-height:1.6}
+.btn-submit{background:var(--yellow);color:var(--black);border:none;padding:0.82rem 2rem;font-family:var(--font-body);font-weight:500;font-size:0.92rem;cursor:pointer;border-radius:2px;transition:opacity 0.2s;margin-top:0.25rem}
+.btn-submit:hover{opacity:0.85}
+.btn-submit:disabled{opacity:0.5;cursor:not-allowed}
+.success-box{display:none;background:#1a3a1a;border:0.5px solid #2a5a2a;border-radius:2px;padding:1.25rem;text-align:center;margin-top:1rem}
+.success-title{font-family:var(--font-head);font-size:1rem;font-weight:700;color:#4caf50;margin-bottom:0.3rem}
+.success-sub{font-size:0.82rem;color:#aaa}
+.err-msg{color:#e24b4a;font-size:0.82rem;margin-top:0.5rem;display:none}
+footer{border-top:0.5px solid var(--border);padding:2rem var(--px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;background:var(--gray)}
+.foot-logo{font-family:var(--font-head);font-weight:800;font-size:1rem}
+.foot-logo span{color:var(--yellow)}
+.foot-copy{font-size:0.75rem;color:#555}
+.foot-links{display:flex;gap:1.25rem;flex-wrap:wrap}
+.foot-links a{font-size:0.75rem;color:#555;text-decoration:none;transition:color 0.2s}
+.foot-links a:hover{color:var(--white)}
+@media(max-width:768px){.contact-section{grid-template-columns:1fr}.nav-links{display:none}}
+@media(max-width:500px){.form-grid{grid-template-columns:1fr}.form-group.full{grid-column:1}footer{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="swifthaul_logistics_site.html" style="text-decoration:none;color:inherit">Swift<span>Haul</span></a></div>
+  <ul class="nav-links">
+    <li><a href="swifthaul_logistics_site.html#services">Services</a></li>
+    <li><a href="swifthaul_tracker.html">Track</a></li>
+    <li><a href="swifthaul_shipping.html">Ship Now</a></li>
+  </ul>
+<button onclick="signOut()" style="background:transparent;border:0.5px solid var(--border);color:var(--muted);padding:0.4rem 0.9rem;font-family:var(--font-body);font-size:0.78rem;cursor:pointer;border-radius:2px;transition:all 0.2s" onmouseover="this.style.color='#f5f4f0';this.style.borderColor='#555'" onmouseout="this.style.color='#888';this.style.borderColor='#2a2a2a'">Sign Out</button>
+</nav>
+
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div style="position:relative;z-index:1">
+    <div class="hero-tag">Get in Touch</div>
+    <h1>We're here to <em>help.</em></h1>
+    <p>Questions about a shipment, a quote, or our services? Our operations team responds within 2 business hours.</p>
+  </div>
+</div>
+
+<div class="contact-section">
+  <div class="contact-info">
+    <h2>Contact Information</h2>
+    <div class="contact-block">
+      <div class="contact-block-label">Headquarters</div>
+      <p>200 W. Monroe St., Suite 1400<br>Chicago, IL 60606</p>
+    </div>
+    <div class="contact-block">
+      <div class="contact-block-label">Phone</div>
+      <p><a href="tel:18005550190">1 (800) 555-0190</a> — Toll Free<br><a href="tel:3125550190">(312) 555-0190</a> — Direct</p>
+    </div>
+    <div class="contact-block">
+      <div class="contact-block-label">Email</div>
+      <p><a href="mailto:ops@swifthaul.com">ops@swifthaul.com</a> — Operations<br><a href="mailto:sales@swifthaul.com">sales@swifthaul.com</a> — Sales & Quotes</p>
+    </div>
+    <div class="contact-block">
+      <div class="contact-block-label">Business Hours (CST)</div>
+      <div class="hours-grid">
+        <span class="hours-day">Monday – Friday</span><span class="hours-time">7:00 AM – 7:00 PM</span>
+        <span class="hours-day">Saturday</span><span class="hours-time">8:00 AM – 2:00 PM</span>
+        <span class="hours-day">Sunday</span><span class="hours-time">Closed</span>
+        <span class="hours-day">24/7 Tracking</span><span class="hours-time" style="color:var(--yellow)">Always on</span>
+      </div>
+    </div>
+    <div class="contact-block">
+      <div class="contact-block-label">Emergency Operations</div>
+      <p>For time-sensitive freight emergencies outside business hours, call our 24/7 operations line:<br><a href="tel:18005550191" style="color:var(--yellow)">1 (800) 555-0191</a></p>
+    </div>
+  </div>
+
+  <div>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="field-label">Full Name *</label>
+          <input class="field-input" id="cName" type="text" placeholder="John Smith">
+        </div>
+        <div class="form-group">
+          <label class="field-label">Phone</label>
+          <input class="field-input" id="cPhone" type="tel" placeholder="(312) 555-0100">
+        </div>
+        <div class="form-group full">
+          <label class="field-label">Email Address *</label>
+          <input class="field-input" id="cEmail" type="email" placeholder="john@company.com">
+        </div>
+        <div class="form-group full">
+          <label class="field-label">Subject *</label>
+          <select class="field-select" id="cSubject">
+            <option value="">Select a topic…</option>
+            <option>Tracking inquiry</option>
+            <option>Quote request</option>
+            <option>Billing question</option>
+            <option>File a claim</option>
+            <option>Partnership inquiry</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="field-label">Message *</label>
+          <textarea class="field-textarea" id="cMessage" placeholder="Tell us how we can help…"></textarea>
+        </div>
+        <div class="form-group full">
+          <button class="btn-submit" id="cSubmit" onclick="submitContact()">Send Message →</button>
+          <div class="err-msg" id="cErr"></div>
+          <div class="success-box" id="cSuccess">
+            <div class="success-title">Message sent!</div>
+            <div class="success-sub">We'll get back to you within 2 business hours.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-logo"><a href="swifthaul_logistics_site.html" style="text-decoration:none;color:inherit">Swift<span>Haul</span></a></div>
+  <div class="foot-copy">© 2026 SwiftHaul Logistics, Inc. — Chicago, IL USA</div>
+  <div class="foot-links">
+    <a href="swifthaul_tracker.html">Track</a>
+    <a href="swifthaul_privacy.html">Privacy</a>
+    <a href="swifthaul_terms.html">Terms</a>
+  </div>
+</footer>
+
+<script>
+let sb=null;
+function initSB(){if(typeof SUPABASE_URL==='undefined'||SUPABASE_URL.includes('YOUR_PROJECT'))return false;if(!sb)sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);return true;}
+async function submitContact(){
+  const name=document.getElementById('cName').value.trim();
+  const email=document.getElementById('cEmail').value.trim();
+  const subject=document.getElementById('cSubject').value;
+  const message=document.getElementById('cMessage').value.trim();
+  const errEl=document.getElementById('cErr');
+  errEl.style.display='none';
+  if(!name||!email||!subject||!message){errEl.textContent='Please fill in all required fields.';errEl.style.display='block';return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='Please enter a valid email.';errEl.style.display='block';return;}
+  const btn=document.getElementById('cSubmit');
+  btn.disabled=true;btn.textContent='Sending…';
+  if(initSB()){
+    const {error}=await sb.from('contact_messages').insert({name,email,phone:document.getElementById('cPhone').value.trim(),subject,message});
+    if(error){errEl.textContent='Failed to send: '+error.message;errEl.style.display='block';btn.disabled=false;btn.textContent='Send Message →';return;}
+  }
+  document.getElementById('cSuccess').style.display='block';
+  btn.style.display='none';
+  document.querySelectorAll('.field-input,.field-select,.field-textarea').forEach(el=>el.disabled=true);
+}
+</script>
+
+<script>
+async function signOut() {
+  const _sb = window.__sb || (typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null);
+  if (_sb) await _sb.auth.signOut();
+  window.location.replace('index.html');
+}
+</script>
+</body>
+</html>

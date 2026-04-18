@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="swifthaul_config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="swifthaul_guard.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwiftHaul Logistics — U.S. Freight & Shipping</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --black:#0a0a0a;--white:#f5f4f0;--yellow:#f5c518;--gray:#1a1a1a;
+  --muted:#888;--border:#2a2a2a;--card:#111;
+  --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;
+  --px:clamp(1.25rem,5vw,4rem);
+}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:var(--font-body);overflow-x:hidden}
+nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:center;justify-content:space-between;padding:1.1rem var(--px);background:rgba(10,10,10,0.95);backdrop-filter:blur(12px);border-bottom:0.5px solid var(--border)}
+.logo{font-family:var(--font-head);font-weight:800;font-size:1.25rem;letter-spacing:-0.02em;flex-shrink:0;text-decoration:none;color:var(--white)}
+.logo span{color:var(--yellow)}
+.nav-center{display:flex;gap:1.75rem;list-style:none}
+.nav-center a{text-decoration:none;color:var(--muted);font-size:0.8rem;letter-spacing:0.06em;text-transform:uppercase;transition:color 0.2s}
+.nav-center a:hover{color:var(--white)}
+.nav-right{display:flex;align-items:center;gap:0.75rem}
+.nav-cta{background:var(--yellow);color:var(--black);padding:0.5rem 1.2rem;border:none;border-radius:2px;font-family:var(--font-body);font-weight:500;font-size:0.82rem;cursor:pointer;transition:opacity 0.2s;white-space:nowrap;text-decoration:none}
+.nav-cta:hover{opacity:0.85}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;background:none;border:none}
+.hamburger span{display:block;width:22px;height:1.5px;background:var(--white);transition:all 0.3s}
+.hamburger.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+.mobile-menu{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:998;background:rgba(10,10,10,0.98);flex-direction:column;align-items:center;justify-content:center;gap:2.25rem;padding:2rem}
+.mobile-menu.open{display:flex}
+.mobile-menu a{text-decoration:none;color:var(--white);font-family:var(--font-head);font-size:clamp(1.6rem,8vw,2.2rem);font-weight:800;letter-spacing:-0.02em;transition:color 0.2s}
+.mobile-menu a:hover{color:var(--yellow)}
+.mob-cta{background:var(--yellow);color:var(--black);padding:0.85rem 2.2rem;border:none;border-radius:2px;font-family:var(--font-body);font-weight:500;font-size:0.95rem;cursor:pointer;margin-top:0.5rem;text-decoration:none}
+.hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:7rem var(--px) 4rem;position:relative;overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:0.3}
+.hero-tag{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--yellow);margin-bottom:1.25rem}
+.hero-tag::before{content:'';width:22px;height:1px;background:var(--yellow)}
+h1{font-family:var(--font-head);font-size:clamp(2.2rem,7vw,5.8rem);font-weight:800;line-height:0.95;letter-spacing:-0.03em;max-width:700px;margin-bottom:1.25rem}
+h1 em{color:var(--yellow);font-style:normal}
+.hero-sub{max-width:460px;color:var(--muted);font-size:clamp(0.88rem,2vw,1rem);line-height:1.7;margin-bottom:2rem;font-weight:300}
+.hero-btns{display:flex;gap:0.75rem;flex-wrap:wrap}
+.btn-primary{background:var(--yellow);color:var(--black);padding:0.78rem 1.8rem;border:none;border-radius:2px;font-family:var(--font-body);font-weight:500;font-size:0.9rem;cursor:pointer;transition:opacity 0.2s;text-decoration:none;display:inline-block}
+.btn-primary:hover{opacity:0.85}
+.btn-outline{background:transparent;color:var(--white);padding:0.78rem 1.8rem;border:0.5px solid var(--border);border-radius:2px;font-family:var(--font-body);font-weight:400;font-size:0.9rem;cursor:pointer;transition:border-color 0.2s;text-decoration:none;display:inline-block}
+.btn-outline:hover{border-color:var(--white)}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:3rem;padding-top:2rem;border-top:0.5px solid var(--border)}
+.stat-num{font-family:var(--font-head);font-size:clamp(1.5rem,3vw,2rem);font-weight:800;color:var(--yellow)}
+.stat-label{font-size:0.7rem;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-top:0.2rem;line-height:1.4}
+.trust-bar{background:#111;border-top:0.5px solid var(--border);border-bottom:0.5px solid var(--border);padding:1rem var(--px);display:flex;align-items:center;justify-content:center;gap:clamp(1rem,4vw,3.5rem);flex-wrap:wrap}
+.trust-item{display:flex;align-items:center;gap:0.4rem;color:var(--muted);font-size:0.76rem;letter-spacing:0.04em;white-space:nowrap}
+.ti{color:var(--yellow);font-size:0.8rem}
+.ticker{background:var(--yellow);padding:0.5rem 0;overflow:hidden;white-space:nowrap}
+.ticker-inner{display:inline-flex;gap:2.5rem;animation:tick 24s linear infinite}
+.ticker span{font-family:var(--font-head);font-weight:700;font-size:clamp(0.62rem,1.4vw,0.76rem);letter-spacing:0.08em;color:var(--black);text-transform:uppercase}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+section{padding:clamp(3rem,6vw,5.5rem) var(--px)}
+.section-label{font-size:0.68rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--yellow);margin-bottom:0.8rem}
+.section-title{font-family:var(--font-head);font-size:clamp(1.6rem,3.5vw,2.8rem);font-weight:800;letter-spacing:-0.02em;margin-bottom:0.5rem}
+.section-sub{color:var(--muted);font-size:0.9rem;line-height:1.7;max-width:480px;margin-top:0.5rem;font-weight:300}
+.services{background:var(--gray)}
+.services-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:2.5rem;flex-wrap:wrap;gap:1rem}
+.services-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:1px;background:var(--border)}
+.service-card{background:var(--gray);padding:2rem 1.75rem;transition:background 0.3s}
+.service-card:hover{background:#222}
+.service-icon{width:42px;height:42px;border:0.5px solid var(--border);border-radius:2px;display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;font-size:1.2rem}
+.service-title{font-family:var(--font-head);font-weight:700;font-size:1rem;margin-bottom:0.6rem}
+.service-desc{color:var(--muted);font-size:0.82rem;line-height:1.65;font-weight:300}
+.service-tag{display:inline-block;margin-top:1rem;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--yellow);border:0.5px solid #333;padding:0.22rem 0.55rem;border-radius:1px}
+.tracking-section{background:var(--black)}
+.tracking-wrapper{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;margin-top:2.5rem}
+.track-form-card{background:var(--card);border:0.5px solid var(--border);border-radius:2px;padding:1.75rem}
+.track-form-card h3{font-family:var(--font-head);font-size:1.1rem;font-weight:700;margin-bottom:0.35rem}
+.track-desc{color:var(--muted);font-size:0.8rem;margin-bottom:1.2rem;line-height:1.5}
+.track-input-wrap{display:flex;margin-bottom:0.85rem}
+.track-input{flex:1;min-width:0;background:#1a1a1a;border:0.5px solid var(--border);border-right:none;color:var(--white);padding:0.7rem 0.9rem;font-family:var(--font-body);font-size:0.88rem;outline:none;border-radius:2px 0 0 2px;transition:border-color 0.2s}
+.track-input:focus{border-color:#555}
+.track-btn{background:var(--yellow);color:var(--black);border:none;padding:0.7rem 1.1rem;font-family:var(--font-body);font-weight:500;font-size:0.88rem;cursor:pointer;border-radius:0 2px 2px 0;white-space:nowrap;transition:opacity 0.2s;flex-shrink:0}
+.track-btn:hover{opacity:0.85}
+.track-btn:disabled{opacity:0.5;cursor:not-allowed}
+.quick-label{font-size:0.66rem;color:var(--muted);margin-bottom:0.45rem;letter-spacing:0.06em;text-transform:uppercase}
+.quick-ids{display:flex;gap:0.4rem;flex-wrap:wrap;min-height:22px}
+.quick-id{background:#1a1a1a;border:0.5px solid var(--border);color:var(--muted);padding:0.28rem 0.6rem;font-size:0.72rem;border-radius:1px;cursor:pointer;transition:all 0.2s;font-family:var(--font-body)}
+.quick-id:hover{border-color:#555;color:var(--white)}
+#track-result{margin-top:1.4rem;display:none}
+.result-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem}
+.result-id{font-family:var(--font-head);font-weight:800;font-size:1.05rem}
+.status-badge{padding:0.28rem 0.75rem;border-radius:1px;font-size:0.7rem;font-weight:500;letter-spacing:0.05em;text-transform:uppercase}
+.status-transit{background:#1a3a1a;color:#4caf50;border:0.5px solid #2a5a2a}
+.status-delivered{background:#1a2a1a;color:#69f077;border:0.5px solid #2a4a2a}
+.status-customs{background:#3a2a0a;color:#f5c518;border:0.5px solid #5a420a}
+.status-processing{background:#1a1a3a;color:#7ba7ff;border:0.5px solid #2a2a5a}
+.status-exception{background:#3a1a1a;color:#e24b4a;border:0.5px solid #5a2a2a}
+.result-meta{display:grid;grid-template-columns:1fr 1fr;gap:0.55rem;margin-bottom:1.2rem}
+.meta-item{background:#1a1a1a;padding:0.65rem 0.75rem;border-radius:2px}
+.meta-label{font-size:0.66rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.2rem}
+.meta-val{font-size:0.84rem;font-weight:500}
+.timeline{position:relative;padding-left:1.4rem}
+.timeline::before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--border)}
+.t-step{position:relative;margin-bottom:1.1rem}
+.t-step:last-child{margin-bottom:0}
+.t-dot{position:absolute;left:-1.4rem;top:3px;width:11px;height:11px;border-radius:50%;border:1.5px solid var(--border);background:var(--card)}
+.t-dot.active{background:var(--yellow);border-color:var(--yellow)}
+.t-dot.done{background:#333;border-color:#555}
+.t-location{font-size:0.84rem;font-weight:500;margin-bottom:0.12rem}
+.t-time{font-size:0.71rem;color:var(--muted)}
+.t-note{font-size:0.75rem;color:#aaa;margin-top:0.15rem}
+.map-panel{background:var(--card);border:0.5px solid var(--border);border-radius:2px;overflow:hidden;position:sticky;top:88px}
+.map-placeholder{height:255px;background:#0d0d0d;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.map-grid-bg{position:absolute;inset:0;background-image:linear-gradient(#1a1a1a 1px,transparent 1px),linear-gradient(90deg,#1a1a1a 1px,transparent 1px);background-size:28px 28px}
+.map-info{padding:1.05rem}
+.map-stat{display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:0.5px solid var(--border)}
+.map-stat:last-child{border-bottom:none}
+.map-stat-label{font-size:0.75rem;color:var(--muted);flex-shrink:0}
+.map-stat-val{font-size:0.8rem;font-weight:500;text-align:right;max-width:58%;word-break:break-word}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.pulse{animation:pulse 2s infinite}
+.coverage{background:var(--black)}
+.coverage-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:1px;background:var(--border);margin-top:2.5rem}
+.cov-card{background:var(--black);padding:1.4rem 1.5rem;transition:background 0.3s}
+.cov-card:hover{background:#0f0f0f}
+.cov-city{font-family:var(--font-head);font-weight:700;font-size:0.95rem;margin-bottom:0.2rem}
+.cov-state{font-size:0.74rem;color:var(--muted);margin-bottom:0.5rem}
+.cov-tag{font-size:0.66rem;color:var(--yellow);letter-spacing:0.06em;text-transform:uppercase}
+.how-section{background:var(--gray)}
+.how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));gap:1.75rem;margin-top:2.5rem}
+.step-num{font-family:var(--font-head);font-size:clamp(2.5rem,4vw,3.5rem);font-weight:800;color:#222;line-height:1;margin-bottom:0.85rem}
+.step-title{font-family:var(--font-head);font-weight:700;font-size:0.95rem;margin-bottom:0.45rem}
+.step-desc{color:var(--muted);font-size:0.8rem;line-height:1.6;font-weight:300}
+footer{background:var(--gray);border-top:0.5px solid var(--border);padding:clamp(2rem,4vw,3.5rem) var(--px)}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:2rem;margin-bottom:2.5rem}
+.footer-logo{font-family:var(--font-head);font-weight:800;font-size:1.35rem;margin-bottom:0.4rem;text-decoration:none;color:var(--white)}
+.footer-logo span{color:var(--yellow)}
+.footer-tagline{color:var(--muted);font-size:0.8rem;font-weight:300;line-height:1.6;margin-bottom:0.85rem;max-width:230px}
+.footer-address{color:#555;font-size:0.77rem;line-height:1.85;font-style:normal}
+.fbadges{display:flex;gap:0.35rem;flex-wrap:wrap;margin-top:0.9rem}
+.fbadge{background:#111;border:0.5px solid var(--border);padding:0.18rem 0.5rem;font-size:0.66rem;border-radius:1px;color:var(--muted)}
+.footer-col h4{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.9rem}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:0.45rem}
+.footer-col a{text-decoration:none;color:#555;font-size:0.8rem;transition:color 0.2s}
+.footer-col a:hover{color:var(--white)}
+.footer-bottom{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;padding-top:1.5rem;border-top:0.5px solid var(--border)}
+.footer-copy{font-size:0.73rem;color:#555}
+.footer-legal{display:flex;gap:1.25rem;flex-wrap:wrap}
+.footer-legal a{font-size:0.73rem;color:#555;text-decoration:none;transition:color 0.2s}
+.footer-legal a:hover{color:var(--white)}
+@media(max-width:1024px){.footer-top{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){
+  .nav-center,.nav-cta{display:none}
+  .hamburger{display:flex}
+  .tracking-wrapper{grid-template-columns:1fr}
+  .map-panel{position:static}
+  .services-header{flex-direction:column;align-items:flex-start}
+  .trust-bar{gap:0.9rem}
+}
+@media(max-width:540px){
+  .hero-stats{grid-template-columns:1fr 1fr}
+  .result-meta{grid-template-columns:1fr}
+  .footer-top{grid-template-columns:1fr}
+  .footer-bottom{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="swifthaul_logistics_site.html">Swift<span>Haul</span></a>
+  <ul class="nav-center">
+    <li><a href="#services">Services</a></li>
+    <li><a href="swifthaul_tracker.html">Track</a></li>
+    <li><a href="#coverage">Coverage</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="swifthaul_contact.html">Contact</a></li>
+    <li><a href="swifthaul_account.html" style="color:var(--yellow)">My Account</a></li>
+  </ul>
+  <div class="nav-right">
+    <a class="nav-cta" href="swifthaul_tracker.html">Track Shipment</a>
+    <button onclick="signOut()" style="background:transparent;border:0.5px solid var(--border);color:var(--muted);padding:0.4rem 0.9rem;font-family:var(--font-body);font-size:0.78rem;cursor:pointer;border-radius:2px;transition:all 0.2s" onmouseover="this.style.color='#f5f4f0';this.style.borderColor='#555'" onmouseout="this.style.color='#888';this.style.borderColor='#2a2a2a'">Sign Out</button>
+    <button class="hamburger" id="hamburger" aria-label="Open menu" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#services" onclick="closeMenu()">Services</a>
+  <a href="swifthaul_tracker.html" onclick="closeMenu()">Track</a>
+  <a href="#coverage" onclick="closeMenu()">Coverage</a>
+  <a href="#how" onclick="closeMenu()">How It Works</a>
+  <a href="swifthaul_contact.html" onclick="closeMenu()">Contact</a>
+  <a class="mob-cta" href="swifthaul_tracker.html" onclick="closeMenu()">Track a Shipment →</a>
+</div>
+
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div style="position:relative;z-index:1">
+    <div class="hero-tag">Nationwide &amp; Global Freight Solutions</div>
+    <h1>America's freight,<br><em>delivered fast.</em></h1>
+    <p class="hero-sub">SwiftHaul moves cargo across all 50 states and 180+ countries — with live tracking, guaranteed transit windows, and zero surprises. Headquartered in Chicago, IL.</p>
+    <div class="hero-btns">
+      <a class="btn-primary" href="swifthaul_tracker.html">Track a Shipment</a>
+      <a class="btn-outline" href="#services">Our Services</a>
+    </div>
+    <div class="hero-stats">
+      <div><div class="stat-num">50</div><div class="stat-label">States covered</div></div>
+      <div><div class="stat-num">4.8M</div><div class="stat-label">Packages delivered</div></div>
+      <div><div class="stat-num">99.7%</div><div class="stat-label">On-time rate</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="trust-bar">
+  <div class="trust-item"><span class="ti">✦</span> DOT Certified Carrier</div>
+  <div class="trust-item"><span class="ti">✦</span> FMCSA Registered</div>
+  <div class="trust-item"><span class="ti">✦</span> TSA Air Cargo Approved</div>
+  <div class="trust-item"><span class="ti">✦</span> C-TPAT Member</div>
+  <div class="trust-item"><span class="ti">✦</span> BBB A+ Rated</div>
+</div>
+
+<div class="ticker">
+  <div class="ticker-inner">
+    <span>✦ Next-Day Air</span><span>✦ LTL &amp; FTL Freight</span>
+    <span>✦ Last-Mile Delivery</span><span>✦ Temperature-Controlled</span>
+    <span>✦ Customs Brokerage</span><span>✦ White Glove Service</span>
+    <span>✦ Intermodal Rail</span><span>✦ Warehousing &amp; Fulfillment</span>
+    <span>✦ Next-Day Air</span><span>✦ LTL &amp; FTL Freight</span>
+    <span>✦ Last-Mile Delivery</span><span>✦ Temperature-Controlled</span>
+    <span>✦ Customs Brokerage</span><span>✦ White Glove Service</span>
+    <span>✦ Intermodal Rail</span><span>✦ Warehousing &amp; Fulfillment</span>
+  </div>
+</div>
+
+<section class="services" id="services">
+  <div class="services-header">
+    <div>
+      <div class="section-label">What We Offer</div>
+      <div class="section-title">End-to-end<br>logistics solutions</div>
+    </div>
+    <p class="section-sub">From coast to coast and overseas — we handle every mile so you can focus on your business.</p>
+  </div>
+  <div class="services-grid">
+    <div class="service-card"><div class="service-icon">✈</div><div class="service-title">Air Freight</div><div class="service-desc">Priority air cargo via Chicago O'Hare, LAX, JFK, and ATL — same-day cutoffs and overnight options available.</div><div class="service-tag">Next Day – 3 Days</div></div>
+    <div class="service-card"><div class="service-icon">🚛</div><div class="service-title">Ground Freight</div><div class="service-desc">Nationwide FTL and LTL trucking with real-time GPS. Coast-to-coast guaranteed delivery windows — no surprises.</div><div class="service-tag">2–7 Business Days</div></div>
+    <div class="service-card"><div class="service-icon">🚢</div><div class="service-title">Ocean Freight</div><div class="service-desc">Import and export via major U.S. ports — Los Angeles, Savannah, Houston, and New York/New Jersey.</div><div class="service-tag">14–35 Days</div></div>
+    <div class="service-card"><div class="service-icon">🏭</div><div class="service-title">Warehousing</div><div class="service-desc">1.2M sq ft of bonded warehouse space across 12 states. Inventory management, pick-and-pack, same-day dispatch.</div><div class="service-tag">Flexible Terms</div></div>
+    <div class="service-card"><div class="service-icon">📋</div><div class="service-title">Customs Brokerage</div><div class="service-desc">Licensed U.S. Customs brokers — ISF filings, HTS classification, AES export compliance, and duty drawback.</div><div class="service-tag">CBP Licensed</div></div>
+    <div class="service-card"><div class="service-icon">❄</div><div class="service-title">Cold Chain</div><div class="service-desc">FDA-compliant temperature-controlled logistics for food, pharma, and biotech. Monitored 24/7 from pickup to delivery.</div><div class="service-tag">2°F – 77°F Range</div></div>
+  </div>
+</section>
+
+<section class="tracking-section" id="track">
+  <div class="section-label">Live Tracking</div>
+  <div class="section-title">Where's your shipment?</div>
+  <p class="section-sub">Enter your SwiftHaul tracking number or tap an active shipment below.</p>
+  <div class="tracking-wrapper">
+    <div>
+      <div class="track-form-card">
+        <h3>Track Your Package</h3>
+        <p class="track-desc">Tracking numbers start with SH- followed by 7 digits. Check your confirmation email or Bill of Lading.</p>
+        <div class="track-input-wrap">
+          <input class="track-input" id="trackInput" type="text" placeholder="e.g. SH-1042893" maxlength="12" oninput="this.value=this.value.toUpperCase()">
+          <button class="track-btn" id="trackBtn" onclick="trackPackage()">Track →</button>
+        </div>
+        
+        <div id="track-result">
+          <div style="border-top:0.5px solid var(--border);margin:1.4rem 0 1.1rem"></div>
+          <div class="result-header">
+            <div class="result-id" id="res-id"></div>
+            <div class="status-badge" id="res-status"></div>
+          </div>
+          <div class="result-meta">
+            <div class="meta-item"><div class="meta-label">Origin</div><div class="meta-val" id="res-origin"></div></div>
+            <div class="meta-item"><div class="meta-label">Destination</div><div class="meta-val" id="res-dest"></div></div>
+            <div class="meta-item"><div class="meta-label">Service</div><div class="meta-val" id="res-service"></div></div>
+            <div class="meta-item"><div class="meta-label">Est. Delivery</div><div class="meta-val" id="res-eta"></div></div>
+          </div>
+          <div style="font-size:0.66rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">Shipment History — All times EST</div>
+          <div class="timeline" id="res-timeline"></div>
+          <div style="margin-top:1.25rem"><a href="swifthaul_tracker.html" style="font-size:0.78rem;color:var(--yellow);text-decoration:none">View full tracking page →</a></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="map-panel">
+        <div class="map-placeholder">
+          <div class="map-grid-bg"></div>
+          <svg id="map-svg" width="82%" height="68%" viewBox="0 0 400 160" style="position:relative;z-index:1;display:none">
+            <defs><marker id="arr" markerWidth="6" markerHeight="4" refX="3" refY="2" orient="auto"><polygon points="0 0,6 2,0 4" fill="#f5c518"/></marker></defs>
+            <line x1="40" y1="80" x2="360" y2="80" stroke="#2a2a2a" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <line id="route-progress" x1="40" y1="80" x2="40" y2="80" stroke="#f5c518" stroke-width="2" marker-end="url(#arr)"/>
+            <circle id="origin-dot" cx="40" cy="80" r="5" fill="#f5c518"/>
+            <circle id="dest-dot" cx="360" cy="80" r="5" fill="#333" stroke="#555" stroke-width="1.5"/>
+            <circle id="pkg-dot" cx="40" cy="80" r="4" fill="#f5c518" class="pulse"/>
+            <text id="origin-label" x="40" y="106" text-anchor="middle" fill="#555" font-size="10" font-family="DM Sans,sans-serif">—</text>
+            <text id="dest-label" x="360" y="106" text-anchor="middle" fill="#555" font-size="10" font-family="DM Sans,sans-serif">—</text>
+            <text id="pkg-label" x="200" y="52" text-anchor="middle" fill="#f5c518" font-size="9" font-family="DM Sans,sans-serif" font-weight="600"></text>
+          </svg>
+          <div id="map-empty" style="text-align:center;color:#2a2a2a;position:relative;z-index:1">
+            <div style="font-size:2rem;margin-bottom:0.5rem">📦</div>
+            <div style="font-size:0.73rem;letter-spacing:0.08em;text-transform:uppercase">Enter a tracking ID above</div>
+          </div>
+        </div>
+        <div class="map-info" id="map-info" style="display:none">
+          <div class="map-stat"><span class="map-stat-label">Current Location</span><span class="map-stat-val" id="mi-location">—</span></div>
+          <div class="map-stat"><span class="map-stat-label">Next Stop</span><span class="map-stat-val" id="mi-next">—</span></div>
+          <div class="map-stat"><span class="map-stat-label">Weight</span><span class="map-stat-val" id="mi-weight">—</span></div>
+        </div>
+        <div id="map-info-empty" style="padding:1.2rem;text-align:center;color:var(--muted);font-size:0.8rem">Track a shipment to view live route info</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="coverage" id="coverage">
+  <div class="section-label">Hub Network</div>
+  <div class="section-title">12 U.S. distribution hubs</div>
+  <p class="section-sub">Strategically placed facilities deliver next-day ground coverage to 96% of the continental United States.</p>
+  <div class="coverage-grid">
+    <div class="cov-card"><div class="cov-city">Chicago</div><div class="cov-state">Illinois 60606</div><div class="cov-tag">✦ Headquarters</div></div>
+    <div class="cov-card"><div class="cov-city">Los Angeles</div><div class="cov-state">California 90001</div><div class="cov-tag">✦ West Coast Hub</div></div>
+    <div class="cov-card"><div class="cov-city">Dallas</div><div class="cov-state">Texas 75201</div><div class="cov-tag">✦ South-Central Hub</div></div>
+    <div class="cov-card"><div class="cov-city">Atlanta</div><div class="cov-state">Georgia 30301</div><div class="cov-tag">✦ Southeast Hub</div></div>
+    <div class="cov-card"><div class="cov-city">New York</div><div class="cov-state">New York 10001</div><div class="cov-tag">✦ Northeast Hub</div></div>
+    <div class="cov-card"><div class="cov-city">Seattle</div><div class="cov-state">Washington 98101</div><div class="cov-tag">✦ Pacific Northwest</div></div>
+    <div class="cov-card"><div class="cov-city">Miami</div><div class="cov-state">Florida 33101</div><div class="cov-tag">✦ Port Gateway</div></div>
+    <div class="cov-card"><div class="cov-city">Phoenix</div><div class="cov-state">Arizona 85001</div><div class="cov-tag">✦ Southwest Hub</div></div>
+  </div>
+</section>
+
+<section class="how-section" id="how">
+  <div class="section-label">The Process</div>
+  <div class="section-title">Ship in 4 steps</div>
+  <div class="how-grid">
+    <div><div class="step-num">01</div><div class="step-title">Get a Quote</div><div class="step-desc">Enter origin ZIP, destination ZIP, weight, and dimensions online. Instant pricing — no hidden fees.</div></div>
+    <div><div class="step-num">02</div><div class="step-title">Schedule Pickup</div><div class="step-desc">Choose a 2-hour pickup window. Our driver arrives with your Bill of Lading and labels pre-printed.</div></div>
+    <div><div class="step-num">03</div><div class="step-title">Track Live</div><div class="step-desc">Your SH tracking number activates immediately. GPS scans every 2 hours throughout our hub network.</div></div>
+    <div><div class="step-num">04</div><div class="step-title">Delivered &amp; Confirmed</div><div class="step-desc">Electronic proof of delivery — signature capture and geo-stamped photo — sent to your inbox within minutes.</div></div>
+  </div>
+</section>
+
+<footer id="contact">
+  <div class="footer-top">
+    <div>
+      <a class="footer-logo" href="swifthaul_logistics_site.html">Swift<span>Haul</span></a>
+      <p class="footer-tagline">Moving America's cargo — reliably, on time, every time.</p>
+      <address class="footer-address">
+        200 W. Monroe St., Suite 1400<br>
+        Chicago, IL 60606<br>
+        <a href="tel:3125550190" style="color:#555;text-decoration:none">(312) 555-0190</a><br>
+        <a href="mailto:ops@swifthaul.com" style="color:#555;text-decoration:none">ops@swifthaul.com</a>
+      </address>
+      <div class="fbadges">
+        <div class="fbadge">DOT #2841920</div>
+        <div class="fbadge">MC #932710</div>
+        <div class="fbadge">C-TPAT</div>
+        <div class="fbadge">TSA Approved</div>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Services</h4>
+      <ul>
+        <li><a href="#">Air Freight</a></li>
+        <li><a href="#">Ground / LTL</a></li>
+        <li><a href="#">Ocean Freight</a></li>
+        <li><a href="#">Cold Chain</a></li>
+        <li><a href="#">Warehousing</a></li>
+        <li><a href="#">Customs Brokerage</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="swifthaul_contact.html">About SwiftHaul</a></li>
+        <li><a href="swifthaul_contact.html">Careers</a></li>
+        <li><a href="swifthaul_contact.html">Press Room</a></li>
+        <li><a href="swifthaul_contact.html">Sustainability</a></li>
+        <li><a href="swifthaul_contact.html">Partner Program</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <ul>
+        <li><a href="swifthaul_tracker.html">Track a Shipment</a></li>
+        <li><a href="swifthaul_shipping.html">Ship Now</a></li>
+        <li><a href="swifthaul_contact.html">File a Claim</a></li>
+        <li><a href="swifthaul_contact.html">FAQs</a></li>
+        <li><a href="tel:18005550190">1 (800) 555-0190</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2026 SwiftHaul Logistics, Inc. All rights reserved. Chicago, IL USA.</div>
+    <div class="footer-legal">
+      <a href="swifthaul_privacy.html">Privacy Policy</a>
+      <a href="swifthaul_terms.html">Terms of Service</a>
+      <a href="#">Tariff Schedule</a>
+      <a href="swifthaul_admin.html" style="color:#2a2a2a">Staff Login</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+let sb = null;
+function initSB(){if(typeof SUPABASE_URL==='undefined'||SUPABASE_URL.includes('YOUR_PROJECT'))return false;if(!sb)sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);return true;}
+
+function toggleMenu(){const h=document.getElementById('hamburger'),m=document.getElementById('mobileMenu');h.classList.toggle('open');m.classList.toggle('open');document.body.style.overflow=m.classList.contains('open')?'hidden':'';}
+function closeMenu(){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileMenu').classList.remove('open');document.body.style.overflow='';}
+
+function statusClass(s){
+  if(s==='In Transit')return 'status-transit';if(s==='Delivered')return 'status-delivered';
+  if(s==='Customs Hold')return 'status-customs';if(s==='Processing')return 'status-processing';
+  return 'status-exception';
+}
+function calcProgress(ms){if(!ms||!ms.length)return 0;return Math.min((ms.filter(m=>m.state==='done').length+ms.filter(m=>m.state==='active').length*0.5)/ms.length,0.98);}
+
+
+function loadQuick(id){document.getElementById('trackInput').value=id;trackPackage();}
+
+async function trackPackage(){
+  const raw=document.getElementById('trackInput').value.trim().toUpperCase();
+  const id=raw.startsWith('SH-')?raw:'SH-'+raw;
+  const res=document.getElementById('track-result');
+  const btn=document.getElementById('trackBtn');
+  btn.disabled=true;btn.textContent='…';
+  if(!initSB()){
+    res.style.display='block';
+    res.innerHTML='<div style="color:#e24b4a;font-size:0.82rem;padding:0.85rem;background:#1a0a0a;border:0.5px solid #3a1a1a;border-radius:2px">Supabase not configured. See SETUP.md — or <a href="swifthaul_tracker.html" style="color:#f5c518">use the full tracking page</a>.</div>';
+    btn.disabled=false;btn.textContent='Track →';
+    document.getElementById('map-svg').style.display='none';document.getElementById('map-empty').style.display='block';
+    document.getElementById('map-info').style.display='none';document.getElementById('map-info-empty').style.display='block';
+    return;
+  }
+  const{data,error}=await sb.from('shipments').select('*').eq('id',id).single();
+  btn.disabled=false;btn.textContent='Track →';
+  if(error||!data){
+    res.style.display='block';
+    res.innerHTML='<div style="border-top:0.5px solid var(--border);margin:1.4rem 0 1.1rem"></div><div style="color:#e24b4a;font-size:0.82rem;padding:0.85rem;background:#1a0a0a;border:0.5px solid #3a1a1a;border-radius:2px">No shipment found for <strong>'+id+'</strong>. Check your number or call <a href="tel:18005550190" style="color:#f5c518">1 (800) 555-0190</a>.</div>';
+    document.getElementById('map-svg').style.display='none';document.getElementById('map-empty').style.display='block';
+    document.getElementById('map-info').style.display='none';document.getElementById('map-info-empty').style.display='block';
+    return;
+  }
+  const ms=data.milestones||[];
+  res.style.display='block';
+  document.getElementById('res-id').textContent=id;
+  const sb2=document.getElementById('res-status');sb2.textContent=data.status;sb2.className='status-badge '+statusClass(data.status);
+  document.getElementById('res-origin').textContent=data.origin||'—';
+  document.getElementById('res-dest').textContent=data.dest||'—';
+  document.getElementById('res-service').textContent=data.service||'—';
+  document.getElementById('res-eta').textContent=data.eta||'—';
+  document.getElementById('res-timeline').innerHTML=ms.length?ms.map(m=>`<div class="t-step"><div class="t-dot ${m.state==='active'?'active':m.state==='done'?'done':''}"></div><div class="t-location">${m.loc}</div><div class="t-time">${m.time}</div>${m.note?`<div class="t-note">${m.note}</div>`:''}</div>`).join(''):'<div style="color:var(--muted);font-size:0.82rem">No milestones yet.</div>';
+  const prog=data.status==='Delivered'?1:calcProgress(ms);
+  const x1=40,x2=360,cx=x1+(x2-x1)*prog;
+  document.getElementById('map-svg').style.display='block';document.getElementById('map-empty').style.display='none';
+  document.getElementById('map-info').style.display='block';document.getElementById('map-info-empty').style.display='none';
+  document.getElementById('route-progress').setAttribute('x2',Math.min(cx,x2-10));
+  document.getElementById('pkg-dot').setAttribute('cx',cx);
+  document.getElementById('origin-label').textContent=data.origin_code||'—';
+  document.getElementById('dest-label').textContent=data.dest_code||'—';
+  document.getElementById('pkg-label').textContent=id;
+  if(prog>=1){document.getElementById('dest-dot').setAttribute('fill','#f5c518');document.getElementById('pkg-dot').style.display='none';}
+  else{document.getElementById('dest-dot').setAttribute('fill','#333');document.getElementById('pkg-dot').style.display='block';}
+  document.getElementById('mi-location').textContent=data.location||'—';
+  document.getElementById('mi-next').textContent=data.next_stop||'—';
+  document.getElementById('mi-weight').textContent=data.weight||'—';
+}
+
+document.getElementById('trackInput').addEventListener('keydown',e=>{if(e.key==='Enter')trackPackage();});
+</script>
+
+<script>
+async function signOut() {
+  const _sb = window.__sb || (typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null);
+  if (_sb) await _sb.auth.signOut();
+  window.location.replace('index.html');
+}
+</script>
+</body>
+</html>
